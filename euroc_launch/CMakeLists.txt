@@ -4,7 +4,9 @@ project(euroc_launch)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+	roscpp
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -89,6 +91,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 ## Declare a cpp library
 # add_library(euroc_launch
@@ -97,6 +100,7 @@ catkin_package(
 
 ## Declare a cpp executable
 # add_executable(euroc_launch_node src/euroc_launch_node.cpp)
+add_executable(TaskSelector src/TaskSelector.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
