@@ -1,4 +1,6 @@
 <launch>
    <include file="$(find pointcloud_publisher)/launch/run_pointcloud_publisher.launch" />
+   <include file="$(find suturo_perception_scene_node)/launch/run_scene_node.launch" />
+   <include file="$(find suturo_perception_gripper_node)/launch/run_gripper_node.launch" />
 </launch>
 
