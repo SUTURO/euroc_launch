@@ -1,6 +1,6 @@
 <launch>
    <include file="$(find pointcloud_publisher)/launch/run_pointcloud_publisher.launch" />
-   <include file="$(find suturo_perception_scene_node)/launch/run_scene_node.launch" />
-   <include file="$(find suturo_perception_gripper_node)/launch/run_gripper_node.launch" />
+	 <node launch-prefix="gdb -ex run --args" pkg="suturo_perception_gripper_node" name="suturo_perception_gripper_node" type="suturo_perception_gripper_node" output="screen"></node>
+	 <node launch-prefix="gdb -ex run --args" pkg="suturo_perception_scene_node" name="suturo_perception_scene_node" type="suturo_perception_scene_node" output="screen"></node>
 </launch>
 
