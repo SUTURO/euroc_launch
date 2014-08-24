@@ -2,5 +2,6 @@
    <include file="$(find pointcloud_publisher)/launch/run_pointcloud_publisher.launch" />
 	 <node launch-prefix="gdb -ex run --args" pkg="suturo_perception_gripper_node" name="suturo_perception_gripper_node" type="suturo_perception_gripper_node" output="screen"></node>
 	 <node launch-prefix="gdb -ex run --args" pkg="suturo_perception_scene_node" name="suturo_perception_scene_node" type="suturo_perception_scene_node" output="screen"></node>
+	 <node pkg="euroc_perception_color_recognizer" name="color_recognizer" type="color_recognizer.py" output="screen"></node>
 </launch>
 
