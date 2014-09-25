@@ -1,0 +1,6 @@
+#!/bin/bash
+SCRIPTS=$(dirname "$0")
+echo Installing custom tasks
+sudo cp $SCRIPTS/../scenes/suturo* /opt/euroc_c2s1/scenes/
+sudo cp $SCRIPTS/../scenes/customScenes.yml /opt/euroc_c2s1/scenes/scenes.yml
+echo Finished!
