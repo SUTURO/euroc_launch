@@ -4,7 +4,7 @@ includes:
 
 public_description:
   task_name: SUTURO task 5 variant 1
-  description: puzzle in target area. object shape/compounds described. corner frame to push parts into. relative target frames per part
+  description: puzzle with easy parameters (no rotation)
   
   puzzle_fixture:
     pose: [ -0.5, -0.5, 0.01, 0, 0, 0.2 ]
@@ -88,18 +88,18 @@ internal_description:
     type: euroc_c2_puzzle_fixture
   objects:
     part1:
-      start_pose: [0.20760330207168326, -0.0033017181529011899, 0.055,
+      start_pose: [0.20760330207168326, -0.0033017181529011899, 0.03,
         0, 0, 0]
       surface_material: aluminium
     part2:
-      start_pose: [0.45902405900595289, 0.26216391152706409, 0.055,
+      start_pose: [0.45902405900595289, 0.26216391152706409, 0.03,
         0, 0, 0]
       surface_material: aluminium
     part3:
-      start_pose: [0.39783651493672495, -0.39826419250026963, 0.055,
+      start_pose: [0.39783651493672495, -0.39826419250026963, 0.03,
         0, 0, 0]
       surface_material: aluminium
     part4:
-      start_pose: [0.54783886664866299, 0.40603712869703901, 0.055,
+      start_pose: [0.54783886664866299, 0.40603712869703901, 0.03,
         0, 0, 0]
       surface_material: aluminium
