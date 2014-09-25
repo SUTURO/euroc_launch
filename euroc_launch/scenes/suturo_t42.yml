@@ -1,0 +1,40 @@
+includes:
+  - task4_v1_common.yml
+
+public_description:
+  task_name: SUTURO task 4/2 fixed
+
+internal_description:
+  objects:
+    red_cube:
+      start_pose: [0.1858, -0.768, 0.04, 0, 0, -0.0925]
+    green_cylinder:
+      start_pose: [0.7648, 0.1677, 0.051, 0.0, 0, 1.8]
+    blue_handle:
+      start_pose: [-0.8231, 0.4563, 0.03, -1.57, 0, 0.4]
+
+  obstacles:
+    o1:
+      color: "201102"
+      shape:
+        - type: box
+          size: [1.55, 0.075, 0.1]
+          pose: [0.15, 0, 0, 0, 0, 0]
+      surface_material: concrete
+      start_pose: [ 0.3, 0.3, 0.05, 0, 0, -0.785398 ]
+    o2:
+      color: "aa2222"
+      shape:
+        - type: box
+          size: [0.1, 0.75, 0.75]
+          pose: [0, 0, 0, 0, 0, 0]
+      surface_material: concrete
+      start_pose: [ -0.6, 0.2, 0.375, 0, 0, -0.785398 ]
+    o3:
+      color: "2222aa"
+      shape:
+        - type: box
+          size: [0.1, 0.75, 0.4]
+          pose: [0, 0, 0, 0, 0, 0]
+      surface_material: concrete
+      start_pose: [ -0.3, -0.3, 0.2, 0, 0, 0.785398 ]
