@@ -35,11 +35,12 @@ void killRecursive(int killMe)
 void killEuroc(int signal)
 {
   killRecursive(pid);
-  exit(signal);
+  exit(0);
 }
 
 int main(int argc, char **argv)
 {
+  signal(SIGTERM, killEuroc);
   signal(SIGINT, killEuroc);
   pid = fork();
   if (pid == 0)
