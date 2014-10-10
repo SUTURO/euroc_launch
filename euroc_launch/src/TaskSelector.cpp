@@ -35,7 +35,7 @@ void killRecursive(int killMe)
 void killEuroc(int signal)
 {
   killRecursive(pid);
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char **argv)
