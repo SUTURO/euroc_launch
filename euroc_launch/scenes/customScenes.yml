@@ -1,9 +1,9 @@
 avaliable_scenes:
-- suturo_t11.yml
-- suturo_t12.yml
-- suturo_t42.yml
-- suturo_t51.yml
-- suturo_t52.yml
+- task1_v1suturo.yml
+- task1_v2suturo.yml
+- task4_v2suturo.yml
+- task5_v1suturo.yml
+- task5_v2suturo.yml
 - task1_v1.yml
 - task2_v1_1.yml
 - task2_v1_2.yml

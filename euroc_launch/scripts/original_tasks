@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPTS=$(dirname "$0")
 echo Installing original tasks
-sudo rm /opt/euroc_c2s1/scenes/suturo*
+sudo rm /opt/euroc_c2s1/scenes/*suturo*
 sudo cp $SCRIPTS/../scenes/originalScenes.yml /opt/euroc_c2s1/scenes/scenes.yml
 echo Finished!
