@@ -1,0 +1,43 @@
+includes:
+  - common_surface_materials.yml
+  - common_lights.yml
+  - common_lwr.yml
+  - common_camera_mast.yml
+  - common_sensors.yml
+  - common_avatars.yml
+
+public_description:
+  time_limit: 600
+
+internal_description:
+  physics:
+    # for screen recording:
+    real_time_factor: 0.2
+    real_time_update_rate: 200
+    #real_time_factor: 0.5
+    #real_time_update_rate: 500
+    #real_time_factor: 1
+    #real_time_update_rate: 1000
+
+  gui_camera_pose: [-0.96057, 1.31732, 1.335621, 0, 0.511643, -1.02781 ]
+
+  default_velocity_decay:
+    angular: 0
+    linear: 0
+  
+  table:
+    height: 0.75
+    surface_material: wood
+  
+  ik:
+    search_steps: 10
+    early_abort_distance: 0.0035
+
+  gravity: [0, 0, -9.8]
+
+  scene:
+    background: [0.6, 0.6, 1, 1]
+    shadows: true
+    grid: false
+    ambient: [0.0, 0.0, 0.0, 1]
+

@@ -1,0 +1,5 @@
+#!/bin/bash
+SCRIPTS=$(dirname "$0")
+echo Changing simulator to fixed 0.2 realtime factor
+sudo cp $SCRIPTS/../scenes/common_defaults_slow.yml /opt/euroc_c2s1/scenes/common_defaults.yml
+echo Finished!
