@@ -767,6 +767,7 @@ class task_selector(object):
             self.log_fn = os.path.join(self.logs_base, "euroc_c2_s1_%s_%s.log" % (
                 datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), user_id))
             etree.SubElement(plugin, "log_file").text = self.log_fn
+        etree.SubElement(world, "plugin", name="gztest", filename=desc.get("plugin_filename", "libTestPlugin.so"))
 
         gui = etree.SubElement(world, "gui")
         camera = etree.SubElement(gui, "camera", name="user_camera")
