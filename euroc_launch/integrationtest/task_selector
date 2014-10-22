@@ -1,0 +1,1505 @@
+#!/usr/bin/python -u
+# -*- encoding: utf-8 mode: python -*-
+
+from collections import namedtuple
+from math import *
+from numpy import *
+from numpy.linalg import *
+
+import sys
+import os
+import pprint
+import traceback
+import subprocess
+import datetime
+import copy
+import signal
+import gobject
+import fcntl
+import select
+import time
+
+import yaml
+from lxml import etree
+import copy
+
+interface = os.getenv("EUROC_INTERFACE")
+ros_interface = False
+if(interface == "ROS"):
+    ros_interface = True
+    import rospy
+    from euroc_c2_msgs.msg import *
+    from euroc_c2_msgs.srv import *
+else:
+    import links_and_nodes as ln
+
+gz_base = os.getenv("GAZEBO_PREFIX")
+gz_models_base = os.getenv("GAZEBO_MODEL_PATH")
+
+gz_server = os.path.join(gz_base, "bin", "gzserver")
+gz_client = os.path.join(gz_base, "bin", "gzclient")
+gz_client_args = "--geometry", "900x660+115+70"
+
+world_fn = "/tmp/euroc_c2s1.world"
+
+vector3 = namedtuple("vector3", "x y z")
+
+def save_xml(fn, root, do_print=False):
+    xml = etree.tostring(root, pretty_print=True)
+    if do_print:
+        print xml
+    fp = file(fn, "wb")
+    fp.write('<?xml version="1.0"?>\n\n%s' % xml)
+    fp.close()
+        
+def read_xml(fn):
+    return etree.parse(
+        fn, 
+        parser=etree.XMLParser(
+            remove_blank_text=True,
+            remove_comments=True
+        )).getroot()
+
+def extend_allowed(key, a_value, b_value):
+    if len(a_value) == 6 and "pose" in key:
+        return False
+    if key.endswith("_pose"):
+        return False
+    if key.endswith("_offset"):
+        return False
+    return True
+
+def deep_update(a, b, prefix=[]):
+    a_keys = set(a.keys())
+    b_keys = set(b.keys())
+    for new_key in b_keys.difference(a_keys):
+        a[new_key] = b[new_key]
+    for key in b_keys.intersection(a_keys):
+        if b[key] is None:
+            # remove from a!
+            del a[key]
+            continue
+        if type(a[key]) != type(b[key]):
+            raise Exception("dict-update error for key %s/%s: a has type %r while b has type %r" % (
+                "/".join(prefix), key, type(a[key]), type(b[key])))
+        if type(a[key]) == dict:
+            new_prefix = list(prefix)
+            new_prefix.append(key)
+            deep_update(a[key], b[key], new_prefix)
+        elif type(a[key]) == list and extend_allowed(key, a[key], b[key]):
+            print "extend %s/%s" % ("/".join(prefix), key)
+            a[key].extend(b[key])
+        else:
+            print "warning: overwrite %s/%s" % ("/".join(prefix), key)
+            a[key] = b[key]
+    return a
+
+class io_watch(object):
+    pass
+
+def fstr(f):
+    return ("%.9f" % f).rstrip("0").rstrip(".")
+
+def get_rpy_from_rot(r):
+    # craig, page 47 and following
+    beta = math.atan2(-r[2, 0], math.sqrt(r[0, 0]**2 + r[1, 0]**2))
+    if abs(beta - (math.pi/2)) < 1e-3:
+        alpha = 0
+        gamma = math.atan2(r[0, 1], r[1, 1])
+    elif abs(beta + (math.pi/2)) < 1e-3:
+        alpha = 0
+        gamma = -math.atan2(r[0, 1], r[1, 1])
+    else:
+        cb = math.cos(beta)
+        alpha = math.atan2(r[1, 0] / cb, r[0, 0] / cb)
+        gamma = math.atan2(r[2, 1] / cb, r[2, 2] / cb)
+    return gamma, beta, alpha
+
+def get_pose_from_frame(frame, numeric=False):
+    pose = frame[:3, 3].tolist()
+    # euler angles in radians: roll, pitch, yaw
+    pose.extend(get_rpy_from_rot(frame[:3, :3]))
+    if numeric:
+        return pose
+    return " ".join(map(fstr, pose))
+
+def normalize_quaternion(q):
+    # q: (w, x, y, z)
+    s = sqrt(dot(q, q))
+    eps = 1e-7
+    if fabs(s) < eps:
+        return array([1, 0, 0, 0], dtype=float)
+    return q / s
+
+def get_quaternion_from_rpy(rpy):
+    # q: (w, x, y, z)
+    roll, pitch, yaw = rpy
+    # SetFromEuler
+
+    phi = roll / 2.0
+    the = pitch / 2.0
+    psi = yaw / 2.0
+    q = array([
+        cos(phi) * cos(the) * cos(psi) + sin(phi) * sin(the) * sin(psi),
+        sin(phi) * cos(the) * cos(psi) - cos(phi) * sin(the) * sin(psi),
+        cos(phi) * sin(the) * cos(psi) + sin(phi) * cos(the) * sin(psi),
+        cos(phi) * cos(the) * sin(psi) - sin(phi) * sin(the) * cos(psi),
+    ])
+    return normalize_quaternion(q)
+
+def get_angle_axis_from_quaternion(q):
+    # q: (w, x, y, z)
+    qlen = dot(q[1:], q[1:])
+    eps = 1e-7
+    if fabs(qlen) < eps:
+        return 0.0, array([1, 0, 0], dtype=float)
+    return 2.0 * acos(q[0]), q[1:] / sqrt(qlen)
+
+def get_angle_axis_from_rpy(rpy):
+    q = get_quaternion_from_rpy(rpy)
+    return get_angle_axis_from_quaternion(q)
+
+def angle_axis2rot(angle, axis):
+    x, y, z = axis[0:3]
+    s = sin(angle)
+    c = cos(angle)   
+    v = 1 - c
+    xyv = x * y * v
+    yzv = y * z * v
+    xzv = x * z * v
+    return array([
+        x*x*v + c,  xyv - z*s,  xzv + y*s,
+        xyv + z*s,  y*y*v + c,  yzv - x*s,
+        xzv - y*s,  yzv + x*s,  z*z*v + c]).reshape(3, 3)
+
+def get_rot_from_rpy(rpy):
+    angle, axis = get_angle_axis_from_rpy(rpy)
+    return angle_axis2rot(angle, axis)
+
+def get_frame_from_pose(pose):
+    if len(pose) == 7:
+        return get_frame_from_pose7(pose)
+    frame = eye(4, dtype=float32)
+    frame[:3, 3] = pose[:3]
+    angle, axis = get_angle_axis_from_rpy(pose[3:])
+    frame[:3, :3] = angle_axis2rot(angle, axis)
+    return frame
+
+def get_frame_from_pose7(pose):
+    frame = eye(4, dtype=float32)
+    frame[:3, 3] = pose[:3]
+    w, x, y, z = pose[3:]
+    angle, axis = get_angle_axis_from_quaternion((w, x, y, z))
+    frame[:3, :3] = angle_axis2rot(angle, axis)
+    return frame
+
+def get_color(c):
+    if type(c) == str and len(c) == 6:
+        rgba = []
+        for i in xrange(3):
+            rgba.append(int(c[i * 2:(i+1)*2], 16))
+        rgba.append(255)
+        #print "rgba", rgba
+        rgba = array(rgba) / 255.
+    elif type(c) == int:
+        rgba = array([obj["color"] >> 16, (obj["color"] >> 8) & 255, obj["color"] & 255, 255]) / 255.
+    elif type(c) == list and len(c) == 3: # 3-list of 0..1
+        rgba = list(c)
+        rgba.append(1)
+        rgba = array(rgba)
+    else:
+        raise Exception("unknown color spec format: %r" % c)
+    #print "rgba", rgba
+    return rgba
+
+def norm_cross(a, b):
+    c = cross(a, b)
+    return c / norm(c)
+
+def stringify(what):
+    if type(what) in (str, unicode):
+        return what
+    if type(what) == ndarray and len(what.shape) == 2:
+        return stringify(get_pose_from_frame(what))
+    if what is True or what is False:
+        return str(what).lower()
+    if type(what) in (list, tuple, ndarray):
+        return " ".join(map(fstr, what))
+    return fstr(what)
+def get(data, item, default):
+    if type(item) == str:
+        item = item.split("/")
+    if len(item) == 0:
+        return data
+    if item[0] not in data:
+        return default
+    return get(data[item[0]], item[1:], default)
+def get_dflt(data, item, dflt_data, dflt_prefix, dflt):
+    v = get(data, item, None)
+    if v is not None:
+        return v
+    return get(dflt_data, dflt_prefix + item, dflt)
+
+def get_moi(moi, mass, old_cog, new_cog):
+    # from Inertial.cc / GetMOI, warning: they might have the wrong sign fro offset!?!
+
+    new2old = dot(inv(new_cog), old_cog)
+
+    # rotate moi into cog frame
+    n2o_rot = new2old[:3, :3]
+    n2o_rot_inv = n2o_rot.transpose()
+    moi = dot(dot(n2o_rot, moi), n2o_rot_inv)
+
+    offset = vector3(*new2old[:3, 3])
+    delta = array([
+        [+(offset.y * offset.y + offset.z * offset.z) * mass,
+         -(offset.x * offset.y) * mass,
+         -(offset.x * offset.z) * mass],
+        [-(offset.y * offset.x) * mass,
+         +(offset.x * offset.x + offset.z * offset.z) * mass,
+         -(offset.y * offset.z) * mass],
+        [-(offset.z * offset.x) * mass,
+         -(offset.z * offset.y) * mass,
+         +(offset.x * offset.x + offset.y * offset.y) * mass]])
+    return moi + delta
+
+
+class task_selector(object):
+    def __init__(self):
+        self.loop = gobject.MainLoop()
+        
+        if ros_interface:
+            args = sys.argv
+            node_name = 'euroc_c2_task_selector'
+            rospy.init_node(node_name)
+            self.list_scenes_server = rospy.Service(node_name + '/list_scenes', ListScenes, self.on_list_scenes)
+            self.start_simulator_server = rospy.Service(node_name + '/start_simulator', StartSimulator, self.on_start_simulator)
+            self.stop_simulator_server = rospy.Service(node_name + '/stop_simulator', StopSimulator, self.on_stop_simulator)
+        else:    
+            self.clnt = ln.client("task_selector", sys.argv)
+            args = self.clnt.get_remaining_args()
+            # add start_scene-service handler
+            # start simulator
+            # stop simulator
+            self.list_scenes_provider = self.clnt.get_service_provider("euroc_c2s1.list_scenes", "euroc_c2s1/list_scenes")
+            self.list_scenes_provider.set_handler(self.on_list_scenes)
+            self.list_scenes_provider.do_register_gobject()
+            
+            self.start_simulator_provider = self.clnt.get_service_provider("euroc_c2s1.start_simulator", "euroc_c2s1/start_simulator")
+            self.start_simulator_provider.set_handler(self.on_start_simulator)
+            self.start_simulator_provider.do_register_gobject()
+            
+            self.stop_simulator_provider = self.clnt.get_service_provider("euroc_c2s1.stop_simulator", "euroc_c2s1/stop_simulator")
+            self.stop_simulator_provider.set_handler(self.on_stop_simulator)
+            self.stop_simulator_provider.do_register_gobject()
+            
+            self.start_replay_simulator_provider = self.clnt.get_service_provider("euroc_c2s1.start_replay_simulator", "euroc_c2s1/start_replay_simulator")
+            self.start_replay_simulator_provider.set_handler(self.on_start_replay_simulator)
+            self.start_replay_simulator_provider.do_register_gobject()
+            
+        self.simulator = None
+        self.viewer = None
+        self._watches = []
+        self.simulator_stopped = True
+        self._output_hooks = []
+        self.last_user_id = "unknown_user"
+        
+        self.scenes_file = args[1]
+        self.scenes_base = os.path.dirname(self.scenes_file)
+        self.logs_base = os.getenv('EUROC_LOG_DIR', os.path.join(self.scenes_base, "..", "logs"))
+        if not os.path.isdir(self.logs_base):
+            os.makedirs(self.logs_base)
+        self._reload_scenes()
+        print "have %d scenes:" % len(self.scenes)
+        scene_names = self.scenes.keys()
+        scene_names.sort()
+        for sn in scene_names:
+            print " - %s" % sn
+
+    def _stop_simulator(self, gracefull=False):
+        was_stopped = self.simulator_stopped
+        if not was_stopped:
+            print "stopping simulator (gracefull: %s)" % gracefull
+            self.simulator_stopped = True
+        else:
+            print "already stopped"
+            self.simulator = None
+            return False # already stopped
+        self.got_sigchild = False
+        if gracefull:
+            all_terminated = True
+            for w in self._watches:
+                try:
+                    os.kill(w.pid, signal.SIGINT)
+                except:
+                    pass
+                start = time.time()
+                while not w.terminated and time.time() - start < 5:
+                    self.loop.get_context().iteration(False)
+                all_terminated = all_terminated and w.terminated
+                if w.terminated:
+                    if w.source_id: gobject.source_remove(w.source_id)
+                    gobject.source_remove(w.child_source_id)                    
+                else:
+                    print "Timeout waiting for process %s to stop" % w.name
+            if all_terminated:
+                self.simulator = None
+                return True
+
+        print "Killing remaining processes..."
+        for w in self._watches:
+            if not w.terminated:
+                try:
+                    os.kill(w.pid, signal.SIGKILL)
+                except:
+                    pass
+                if w.source_id: gobject.source_remove(w.source_id)
+                gobject.source_remove(w.child_source_id)
+        self._watches = []
+        os.system('pkill gzserver')
+        os.system('pkill gzclient')
+        self.simulator = None
+        return True
+
+    def _register_io(self, what):
+        p = getattr(self, what)
+        w = io_watch()
+        self._watches.append(w)
+        w.name = what
+        w.p = p
+        w.fd = w.p.stdout
+        w.pid = w.p.pid
+        if w.fd: 
+            fcntl.fcntl(w.fd, fcntl.F_SETFL, os.O_NDELAY)        
+            w.source_id = gobject.io_add_watch(w.fd, gobject.IO_IN | gobject.IO_ERR, self._on_output, w)
+        else:
+            w.source_id = None
+        w.child_source_id = gobject.child_watch_add(w.pid, self._on_child, w)
+        w.terminated = False
+        print "process %r started on pid %r" % (w.name, w.pid)
+
+    def _on_child(self, pid, condition, w):
+        print "process %r at pid %r terminated!" % (w.name, w.pid)
+        if w.name != "viewer":
+            self.got_sigchild = True
+            if self.simulator_starting:
+                print "simulator stopped while starting up!"
+                self.simulator_stopped = True
+            if self.simulator_stopped:
+                self._stop_simulator()
+        else:
+            print "viewer terminated. not stopping server"
+        w.terminated = True
+
+    def _on_output(self, fd, why, w):
+        #print "on output"
+        data = fd.read(1024)
+        #print "got output: %r" % data
+        if data == "":
+            print "eof from %r -- assume stopped simulator" % w.name
+            self._stop_simulator()
+            return False
+        sys.stdout.write(data)
+        sys.stdout.flush()
+        if self._output_hooks:
+            to_del = []
+            for i, (search, method) in enumerate(self._output_hooks):
+                if search in data:
+                    ret = method()
+                    if not ret:
+                        to_del.append(i)
+            to_del.reverse()
+            for td in to_del:
+                del self._output_hooks[td]
+        return True
+
+    def _start_simulator(self, user_id, scene, without_viewer=False, no_start=False, build=True, without_log=False):
+        fn = scene["filename"]
+        self.last_user_id = user_id
+        print "start simulator with user_id %r and scene file %r" % (user_id, fn)
+        # generate world file
+        self._without_log = without_log
+        self._generate_worldfile(world_fn, scene, user_id)
+        if no_start:
+            raise Exception("server not started as requested.")
+        if build:
+            ret = os.system("make -C euroc_c2_plugin/build -j4")
+            if ret != 0:
+                raise Exception("build returned %d" % ret)
+        self._without_viewer = without_viewer
+        self.simulator_starting = True
+        os.system('pkill gzserver')
+        if not ros_interface:
+            kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        else:
+            kwargs = {}
+
+        self.simulator = subprocess.Popen(
+            [gz_server, world_fn], 
+            cwd=os.path.dirname(__file__),
+            shell=False, **kwargs)
+
+        if ros_interface:
+            timeout = 60
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                poll_ret = self.simulator.poll()
+                if poll_ret is not None:
+                    rc = self.simulator.returncode
+                    msg = "gazebo server failed to startup: returncode: %r" % (rc, )                    
+                    print msg
+                    if rc < 0:
+                        print "gazebo server seems to be killed by signal %d - try to upload core dumps..." % -rc
+                        os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % user_id)
+                    self._stop_simulator()
+                    raise Exception(msg + "\nplease check terminal output in simserv VM")
+                try:
+                    rospy.wait_for_service("/euroc_interface_node/move_along_joint_path", timeout=1)
+                    break
+                except:
+                    if time.time() - start_time >= timeout:
+                        traceback.print_exc()
+                        break
+            if time.time() - start_time < timeout:
+                self._on_server_ready()
+            else:
+                msg = "timeout waiting for gazebo server to startup."
+                print msg
+                print "try to upload core dump from still running gazebo process..."
+                os.system("/opt/euroc_c2s1/bin/upload_core '%s' gzserver" % user_id)
+                self.simulator_stopped = False
+                self._stop_simulator()
+                raise Exception(msg + "\nplease check terminal output in simserv VM.\n")
+                
+        self._start_simulator_bh()
+
+    def _start_replay_simulator(self, log_fn):
+        print "start replay simulator for log_fn %r" % log_fn
+        # generate world file
+        self._generate_worldfile_from_log(world_fn, log_fn)
+        self._without_viewer = False
+        self.simulator_starting = True        
+        os.system('pkill gzserver')
+        self.simulator = subprocess.Popen(
+            [gz_server, world_fn], 
+            cwd=os.path.dirname(__file__),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            shell=False)
+        self._start_simulator_bh()
+        
+    def _start_simulator_bh(self):
+        self._register_io("simulator")
+        self._output_hooks = [("lwr plugin ready", self._on_server_ready)]
+        a = time.time()
+        timeout = 60
+        timeout_id = gobject.timeout_add(int(timeout * 1e3), lambda *args: False)
+        timeout += time.time()
+        self.simulator_stopped = False
+        if ros_interface:
+            self.server_started = True
+        else:
+            print "waiting for gazebo server to startup..."
+            self.server_started = False
+            while time.time() < timeout and not self.server_started and not self.simulator_stopped:
+                self.loop.get_context().iteration(True)
+            gobject.source_remove(timeout_id)
+        self.simulator_starting = False
+        if self.simulator_stopped:
+            raise Exception("failed to start simulation server! please check console output!")
+        if time.time() > timeout:
+            self._stop_simulator()
+            raise Exception("timeout waiting for gazebo server to startup")
+        print "server started.", self.server_started
+
+    def _on_server_ready(self):
+        # start viewer
+        print "server is ready!"
+        self.server_started = True
+        if self._without_viewer:
+            print "without viewer requested."
+            return
+        args = [gz_client]
+        args.extend(gz_client_args)
+        self.viewer = subprocess.Popen(
+            args, shell=False,
+            #stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        self._register_io("viewer")
+
+    def _instanciate_object(self, desc, world, obj_name, obj, override_pose=None, is_obstacle=False):
+        # each objects will have its own model
+        model = etree.SubElement(world, "model", name=obj_name)
+        if is_obstacle:
+            etree.SubElement(model, "static").text = stringify(True)
+        if override_pose is None:
+            pose = get(obj, "start_pose", eye(4))
+        else:
+            pose = override_pose
+        etree.SubElement(model, "pose").text = stringify(pose)
+
+        link = etree.SubElement(model, "link", name="base")            
+        if not is_obstacle:
+            vd = etree.SubElement(link, "velocity_decay")
+            etree.SubElement(vd, "angular").text = stringify(get_dflt(obj, "velocity_decay/angular", desc, "default_", 0))
+            etree.SubElement(vd, "linear").text = stringify(get_dflt(obj, "velocity_decay/linear", desc, "default_", 0))
+            inertial = etree.SubElement(link, "inertial")
+
+        mass = 0
+        cog = eye(4)
+        inertia = diag([0, 0, 0])
+
+        if "color" in obj:
+            mat = etree.Element("material")
+            etree.SubElement(mat, "diffuse").text = stringify(get_color(obj["color"]))
+        else:
+            mat = None
+        for si, shape in enumerate(obj["shape"]):
+            #density = get(shape, "density", 600) # [kg/m³] ~wood
+            density = get(shape, "density", 7850) # [kg/m³] ~wood
+
+            if shape["type"] == "cylinder":
+                gshape = etree.Element("cylinder")
+                r, h = shape["radius"], shape["length"]
+                etree.SubElement(gshape, "radius").text = stringify(r)
+                etree.SubElement(gshape, "length").text = stringify(h)
+                V = pi * r**2 * h
+                m = V * density
+                Iz = m*r*r/2
+                Ixy = 1/12.*m*(3*r**2+h**2)
+                I = diag([Ixy, Ixy, Iz])
+            elif shape["type"] == "box":
+                gshape = etree.Element("box")
+                etree.SubElement(gshape, "size").text = stringify(shape["size"])
+                w, h, d = shape["size"]
+                V = w * h * d
+                m = V * density
+                I = diag([
+                    1/12.*m*(h**2+d**2),
+                    1/12.*m*(w**2+d**2),
+                    1/12.*m*(w**2+h**2)])
+            elif shape["type"] == "sphere":
+                gshape = etree.Element("sphere")
+                r = shape["radius"]
+                etree.SubElement(gshape, "radius").text = stringify(r)
+                V = 4/3. * pi * r**3
+                m = V * density
+                Ixyz = 2/5.*m*r**2
+                I = diag([Ixyz, Ixyz, Ixyz])
+            else:
+                raise Exception("unknown shape type %r" % shape["type"])
+
+            pose = get_frame_from_pose(shape["pose"])
+            this_cog = pose
+            # rotate and shift inertia tensor into cog
+            I = get_moi(I, m, eye(4), this_cog)
+
+            g = etree.Element("geometry")
+            g.append(gshape)
+
+            collision = etree.SubElement(link, "collision", name="collision%d" % si)
+            etree.SubElement(collision, "pose").text = stringify(pose)
+            surface = etree.SubElement(collision, "surface")
+            bounce = etree.SubElement(surface, "bounce")
+            etree.SubElement(bounce, "restitution_coefficient").text = stringify(
+                get_dflt(shape, "bounce/restitution_coefficient", desc, "surface_materials/default/", 0))
+            etree.SubElement(bounce, "threshold").text = stringify(
+                get_dflt(shape, "bounce/threshold", desc, "surface_materials/default/", 100000))
+            bullet_friction = etree.SubElement(
+                etree.SubElement(surface, "friction"), "bullet") # not used!
+                #etree.SubElement(surface, "friction"), "ode") # not used!
+            defaults = dict(
+                #mu=1,
+                #mu2=1,
+                friction=1,
+                friction2=1,
+                fdir1=[0, 0, 0],
+                rolling_friction=1
+            )
+            f = get(shape, "friction/friction2", None)
+            if f is not None:
+                print "warning: you set friction2 which is ignored by current gazebo/bullet binding..."
+            f = get(shape, "friction/friction", None)
+            if f is not None:
+                shape["friction"]["friction2"] = f
+
+            f = get(desc, "surface_materials/default/friction/friction", None)
+            if f is not None:
+                desc["surface_materials"]["default"]["friction"]["friction2"] = f
+
+            for name, value in defaults.iteritems():
+                etree.SubElement(bullet_friction, name).text = stringify(
+                    get_dflt(shape, "friction/" + name, desc, "surface_materials/default/", value))
+            if "surface_material" in obj:
+                etree.SubElement(bullet_friction, "surface_material_name").text = obj["surface_material"]
+
+            bullet_contact = etree.SubElement(
+                etree.SubElement(surface, "contact"),
+                "bullet")
+            defaults = dict(
+                soft_cfm=0,
+                soft_erp=0.2,
+                kp=1e+12,
+                kd=1,
+                #split_impulse=1,
+                #split_impulse_penetration_threshold=-0.01
+            )
+            for name, value in defaults.iteritems():
+                etree.SubElement(bullet_contact, name).text = stringify(
+                    get_dflt(shape, "contact/" + name, desc, "surface_materials/default/", value))
+            collision.append(copy.deepcopy(g))
+            visual = etree.SubElement(link, "visual", name="visual%d" % si)
+            etree.SubElement(visual, "pose").text = stringify(pose)
+            etree.SubElement(visual, "cast_shadows").text = "true"
+            if mat is not None:
+                visual.append(copy.deepcopy(mat))
+            visual.append(g)
+
+            if is_obstacle:
+                continue
+            # add mass, inertia, cog
+            if mass != 0:
+                new_mass = mass + m
+                new_cog = eye(4)
+                new_cog[:3, 3] = (cog[:3, 3] * mass + this_cog[:3, 3] * m) / new_mass;
+                I1 = get_moi(inertia, mass, cog, new_cog)
+                I2 = get_moi(I, m, this_cog, new_cog)
+
+                inertia = I1 + I2
+                mass = new_mass
+                cog = new_cog
+            else:
+                inertia = I
+                mass = m
+                cog = this_cog
+
+        if not is_obstacle:
+            etree.SubElement(inertial, "mass").text = stringify(mass)
+            etree.SubElement(inertial, "pose").text = stringify(cog)
+            i = etree.SubElement(inertial, "inertia")
+            etree.SubElement(i, "ixx").text = stringify(inertia[0, 0])
+            etree.SubElement(i, "ixy").text = stringify(inertia[0, 1])
+            etree.SubElement(i, "ixz").text = stringify(inertia[0, 2])
+            etree.SubElement(i, "iyy").text = stringify(inertia[1, 1])
+            etree.SubElement(i, "iyz").text = stringify(inertia[1, 2])
+            etree.SubElement(i, "izz").text = stringify(inertia[2, 2])
+
+    def _collect_scene(self, scene, publics, internals):
+        if "includes" in scene:
+            for inc in scene["includes"]:
+                #print "include %r" % inc
+                inc_data = self.yaml_load(inc)
+                self._collect_scene(inc_data, publics, internals)
+        if "public_description" in scene:
+            publics.append(scene["public_description"])
+        if "internal_description" in scene:
+            internals.append(scene["internal_description"])
+
+    def _generate_worldfile_from_log(self, world_fn, log_fn):
+        #  scene, user_id
+        lp = os.path.dirname(os.path.dirname(__file__))
+        if lp not in sys.path:
+            sys.path.insert(0, lp)
+        import euroc_c2_logfile.evaluate_logfile
+        self.evaluator = euroc_c2_logfile.evaluate_logfile.log_evaluator(log_fn)
+        self.reader = self.evaluator.reader
+
+        self.xml = self.evaluator.find_string("world")
+        root = etree.fromstring(self.xml)
+        print root.tag
+        physics = root.findall("world")[0].findall("physics")[0]
+        physics.set("type", "euroc_c2_replay")
+        replay = etree.SubElement(physics, "euroc_c2_replay")
+        etree.SubElement(replay, "log_file").text = log_fn
+
+        plugin = root.findall("world")[0].findall("plugin")[0]
+        plugin.remove(plugin.findall("log_file")[0])
+        etree.SubElement(plugin, "replay_log_file").text = log_fn
+
+
+
+        for model_ptr, model in self.evaluator.models.iteritems():
+            mdl = etree.SubElement(replay, "log_model",
+                                   name=model.name,
+                                   ptr=str(model.ptr),
+                                   start_pose=get_pose_from_frame(get_frame_from_pose7(model.world_pose)))
+            for link_ptr, link in model.links.iteritems():
+                lnk = etree.SubElement(mdl, "log_link", 
+                                       name=link.name,
+                                       ptr=str(link_ptr),
+                                       start_pose=get_pose_from_frame(get_frame_from_pose7(link.world_pose)))
+            for joint_ptr, joint in model.joints.iteritems():
+                jnt = etree.SubElement(mdl, "log_joint",
+                                       name=joint.name,
+                                       ptr=str(joint_ptr),
+                                       child_ptr=str(joint.child),
+                                       parent_ptr=str(joint.parent),
+                                       start_pose=str(joint.angle))
+
+        save_xml(world_fn, root)
+        fp = file(world_fn + ".yml", "wb")
+        yaml_dump = yaml.dump(self.evaluator.scene)
+        fp.write(yaml_dump)
+        fp.close()
+
+
+    def _generate_worldfile(self, fn, scene, user_id):
+        publics = []
+        internals = []
+        self._collect_scene(scene, publics, internals)
+
+        desc = dict()
+        for data in publics:
+            deep_update(desc, data)
+        self.public_description = copy.deepcopy(desc)
+        for data in internals:
+            deep_update(desc, data)
+        desc["filename"] = scene["filename"]
+
+        root = etree.Element("sdf", version="1.4")
+        world = etree.SubElement(root, "world", name=desc["task_name"])
+
+        plugin = etree.SubElement(world, "plugin", name="euroc_c2_plugin", filename=desc.get("plugin_filename", "libeuroc_c2_plugin.so"))
+        etree.SubElement(plugin, "yaml_data").text = fn + ".yml"
+        etree.SubElement(plugin, "user_id").text = user_id
+        if self._without_log:
+            self.log_fn = ""
+        else:
+            self.log_fn = os.path.join(self.logs_base, "euroc_c2_s1_%s_%s.log" % (
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), user_id))
+            etree.SubElement(plugin, "log_file").text = self.log_fn
+        etree.SubElement(world, "plugin", name="gztest", filename=desc.get("plugin_filename", "libTestPlugin.so"))
+
+        gui = etree.SubElement(world, "gui")
+        camera = etree.SubElement(gui, "camera", name="user_camera")
+        camera_pose = etree.SubElement(camera, "pose").text = stringify(
+            get(desc, "gui_camera_pose", [0.61107, -0.923285, 2.20961, 0, 0.611643, 2.18019]))
+        
+        physics = etree.SubElement(world, "physics", type="bullet")
+        physics_desc = desc.get("physics", {})
+        rt_factor = physics_desc.get("rt_factor", 1)
+        for attr_name, attr_default in [
+                ("max_step_size", 0.001),
+                ("real_time_update_rate", 1000),
+                ("real_time_factor", 1)
+                ]:
+            etree.SubElement(physics, attr_name).text = str(physics_desc.get(attr_name, attr_default))
+        bullet = etree.SubElement(physics, "bullet")
+        solver = etree.SubElement(bullet, "solver")
+        for attr_name, attr_default in [
+                ("min_step_size", 0.0001),
+                ("iters", 50),
+                ]:
+            etree.SubElement(solver, attr_name).text = str(physics_desc.get("solver_" + attr_name, attr_default))
+        constraints = etree.SubElement(bullet, "constraints")
+        etree.SubElement(constraints, "contact_surface_layer").text = str(physics_desc.get("contact_sufrace_layer", 0.001))
+
+        default_surface_material = None
+        # normalize task-file-input
+        surface_contacts = {} # (nameA, nameB) -> contact-props (where nameA < nameB!)
+        for mat_nameA, smat in desc.get("surface_materials", {}).iteritems():
+            if mat_nameA == "default":
+                default_surface_material = smat
+                continue
+            for mat_nameB, contact in smat.get("with").iteritems():
+                if mat_nameA < mat_nameB:
+                    contact_key = mat_nameA, mat_nameB
+                else:
+                    contact_key = mat_nameB, mat_nameA
+                
+                existing = surface_contacts.get(contact_key)
+                if existing is not None and existing != contact:
+                    raise Exception("contact between %r and %r is specified twice with difference values:\n%r\n%r" % (
+                        mat_nameA, mat_nameB,
+                        contact,
+                        existing))
+                surface_contacts[contact_key] = contact
+        # dump normalized output
+        surface_materials = etree.SubElement(bullet, "surface_materials")
+        mats = {}
+        for contact_key, contact in surface_contacts.iteritems():
+            for material_name, other_material in zip(contact_key, contact_key[::-1]):
+                if material_name not in mats:
+                    mats[material_name] = etree.SubElement(surface_materials, "surface_material", name=material_name)
+                w = etree.SubElement(mats[material_name], "with", name=other_material)
+                for item_name, item in contact.iteritems():
+                    etree.SubElement(w, item_name).text = stringify(item)
+                if material_name == other_material:
+                    break
+
+        scene_desc = desc.get("scene", dict(ambient=[0, 0, 0, 1], background=[0, 0, 0, 0], shadows=True, grid=False))
+        scene_elem = etree.SubElement(world, "scene")
+        for name, value in scene_desc.iteritems():
+            etree.SubElement(scene_elem, name).text = stringify(value)
+
+        default_lights = [
+            dict(
+                name="headlight1",
+                type="directional",
+                cast_shadows=True,
+                pose=[5, 0, 3, 0, 0, 0],
+                diffuse=[1, 1, 1, 1],
+                direction=[-0.5, 0.1, -0.9]),
+            dict(
+                name="headlight2",
+                type="directional",
+                cast_shadows=True,
+                pose=[-5, 0, 3, 0, 0, 0],
+                diffuse=[1, 1, 1, 1],
+                direction=[0.5, 0.1, 0.9])]
+        lights_desc = desc.get("lights", default_lights)
+        for light in lights_desc:
+            elem = etree.SubElement(world, "light", name=light["name"], type=light["type"])
+            for name, value in light.iteritems():
+                if name in ("name", "type"):
+                    continue
+                etree.SubElement(elem, name).text = stringify(value)
+
+        self.known_poses = {}
+        def include(parent, model, pose=None, alias=None):
+	    if alias is None:
+                alias = model
+            inc = etree.SubElement(parent, "include")
+	    etree.SubElement(inc, "uri").text = "model://%s" % model
+	    
+	    if pose is not None:
+                if len(pose) == 6:
+                    self.known_poses[alias] = get_frame_from_pose(pose)
+                    etree.SubElement(inc, "pose").text = stringify(pose)
+                else:
+                    self.known_poses[alias] = pose
+                    etree.SubElement(inc, "pose").text = get_pose_from_frame(pose)
+            else:
+                self.known_poses[alias] = eye(4)
+            #print "added new known_pose[%r]:\n%r" % (alias, self.known_poses[alias])
+            if alias != model:
+                etree.SubElement(inc, "name").text = alias
+            return inc
+        def fix(parent_elem, parent, child, alias=None):
+            if alias is None:
+                alias = "%s_on_%s" % (child, parent)
+	    jnt = etree.SubElement(parent_elem, "joint", type="revolute", name=alias)
+            etree.SubElement(jnt, "parent").text = parent
+            etree.SubElement(jnt, "child").text = child
+            axis = etree.SubElement(jnt, "axis")
+            etree.SubElement(axis, "xyz").text = stringify([1, 0, 0])
+            lim = etree.SubElement(axis, "limit")
+            etree.SubElement(lim, "lower").text = "0"
+            etree.SubElement(lim, "upper").text = "0"
+            return jnt
+        def get_model_file(config_fn):
+            root = read_xml(config_fn)
+           
+            highest = None
+            for sdf in root.findall("sdf"):
+                version = tuple(map(int, sdf.get("version").split(".")))
+                if highest is None or highest[0] < version:
+                    highest = version, sdf.text
+            if highest is None:
+                raise Exception("no sdf found in model config file!")
+            return os.path.join(os.path.dirname(config_fn), highest[1])
+            
+        def search_model(src_model):
+            models_base = gz_models_base #os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+            if ":" in models_base:
+                model_bases = models_base.split(":")
+            else:
+                model_bases = [ models_base ]
+            for model_base in model_bases:
+                model_dir = os.path.join(model_base, src_model)
+                config_fn = os.path.join(model_dir, "model.config")
+                if os.path.isfile(config_fn):
+                    return config_fn
+            raise Exception("can not find model %s in these model bases: %s" % (src_mode, models_base))
+
+        def generate_cam_link(parent, src_model, sensor_name, sensor, pose):
+            config_fn = search_model(src_model)
+            model_fn = get_model_file(config_fn)
+            #print "model_fn: %r" % model_fn
+            root = read_xml(model_fn)
+            model = root.find("model")
+            link = model.find("link")
+            link.attrib["name"] = sensor_name + "_link"
+            etree.SubElement(link, "pose").text = stringify(pose)
+            sensor_parent = etree.SubElement(link, "sensor", name=sensor_name, type=sensor["type"])
+            defaults = dict(
+                always_on=True,
+                update_rate=30,
+                visualize=False,
+                topic=sensor_name
+            )
+            for name, default in defaults.iteritems():
+                etree.SubElement(sensor_parent, name).text = stringify(sensor.get(name, default))
+            if sensor["type"] in ("camera", "depth"):
+                camera = sensor["camera"]
+                cam = etree.SubElement(sensor_parent, "camera")
+                defaults = dict(
+                    horizontal_fov=60 / 180. * pi,
+                    image=dict(
+                        width=640,
+                        height=480,
+                        format="R8G8B8"
+                        ),
+                    clip=dict(
+                        near=0.001,
+                        far=20,
+                        ),
+                    noise=dict(
+                        type="gaussian",
+                        mean=0,
+                        stddev=0.001,
+                        ),
+                    )
+                def fill_tree(parent, defaults, src):
+                    for name, default in defaults.iteritems():
+                        v = src.get(name, default)
+                        if type(v) == dict:
+                            fill_tree(
+                                etree.SubElement(parent, name),
+                                default, v)
+                            continue
+                        etree.SubElement(parent, name).text = stringify(v)
+                fill_tree(cam, defaults, camera)
+                if sensor["type"] == "depth":
+                    etree.SubElement(
+                        etree.SubElement(cam, "depth_camera"), "output").text = get(sensor, "depth_camera/output", "depths")
+                    
+            #print "cam link:\n%s" % etree.tostring(link, pretty_print=True)
+            return link
+
+        table_height = get(desc, "table/height", 0.75)
+        world_to_table = eye(4)
+        world_to_table[2, 3] = -table_height
+        world_to_ground = array(world_to_table)
+        #world_to_ground[2, 3] -= 0.5
+        include(world, "small_ground_plane", pose=world_to_ground)
+        if desc.get("background_sphere", True):
+            include(world, "backround_sphere", pose=eye(4))
+
+        if "table" in desc:
+            table_model_name = get(desc, "table/type", "euroc_c2_square_table")
+            include(world, table_model_name, pose=world_to_table)
+
+        if "puzzle_fixture" in desc:
+            fixture_model_name = get(desc, "puzzle_fixture/type", "euroc_c2_puzzle_fixture")
+            target_pose = get(desc, "puzzle_fixture/pose", [0, 0, 0, 0, 0, 0])
+            include(world, fixture_model_name, pose=target_pose)
+
+        robot_models = {}
+        pose_mount_maps = {}
+
+        if "robot" in desc:
+            # generate robot model
+            lwr_robot_name = get(desc, "robot/name", "euroc_c2_lwr")
+            # two-axes, lwr, gripper, camera
+            model = etree.SubElement(world, "model", name=lwr_robot_name)
+            robot_models[lwr_robot_name] = model
+            robot_pose = get(desc, "robot/pose", eye(4))
+            include(model, "euroc_c2_two_axis", pose=robot_pose)
+            include(model, "kuka_lwr", pose=robot_pose)
+            fix(model, "euroc_c2_two_axis::link2", "kuka_lwr::base", "lwr_fixed_on_two_axes")
+            robot_frame = get_frame_from_pose(robot_pose)
+	        
+            robot_base_to_tcp = array( # from verbose2/euroc_c2/LWR model/export to gazebo/get_base_to_tcp
+                [[ 1.   ,  0.   ,  0.   ,  0.   ],
+                 [ 0.   ,  1.   ,  0.   , -0.   ],
+                 [ 0.   ,  0.   ,  1.   ,  1.100],
+                 [ 0.   ,  0.   ,  0.   ,  1.   ]])
+            robot_tcp = dot(robot_frame, robot_base_to_tcp)
+
+            gripper_pose = get_frame_from_pose(get(desc, "robot/gripper_pose", [0, 0, 0.08, 0, 0, 0]))
+            gripper_base = dot(robot_tcp, gripper_pose)
+            gripper_name = "pg70_gripper"
+            tool_joint_name = get(desc, "robot/tool_joint_name", "gripper_fixed_on_lwr")
+            include(model, "pg70_gripper", pose=gripper_base, alias=gripper_name)
+            fix(model, "kuka_lwr::link7", "%s::base" % gripper_name, tool_joint_name)
+
+            if True:
+                # add gripper spec
+                gripper = etree.SubElement(model, "gripper", name="lwr_gripper")
+                gcheck = etree.SubElement(gripper, "grasp_check")
+                etree.SubElement(gcheck, "detach_steps").text = stringify(5)
+                etree.SubElement(gcheck, "attach_steps").text = stringify(10)
+                etree.SubElement(gcheck, "min_contact_count").text = stringify(85)
+                etree.SubElement(gcheck, "update_rate").text = stringify(0.025)
+
+                #etree.SubElement(gripper, "gripper_link").text = "pg70_gripper::finger1"
+                #etree.SubElement(gripper, "gripper_link").text = "pg70_gripper::finger2"
+                etree.SubElement(gripper, "gripper_link").text = "lwr::pg70_gripper::finger1::finger1_c1" # give collision names instead of link names!
+                etree.SubElement(gripper, "gripper_link").text = "lwr::pg70_gripper::finger2::finger2_c1"
+                etree.SubElement(gripper, "palm_link").text = "pg70_gripper::base"
+
+        if "mast_of_cam" in desc:
+            # add scene camera pan-tilt unit            
+            mast_base_pose = get_frame_from_pose(desc["mast_of_cam"]["base_pose"])
+            if desc["mast_of_cam"].get("visualize_mast", True):
+                include(world, "mast_of_cam", pose=mast_base_pose) # include the mast    
+            pan_tilt_base = get_frame_from_pose(desc["mast_of_cam"]["pan_tilt_base"])
+            pan_tilt_base_in_world = dot(mast_base_pose, pan_tilt_base)
+            pan_tilt_robot_name = "euroc_c2_mast_to_cam_joints"
+            model_cam = etree.SubElement(world, "model", name=pan_tilt_robot_name)
+            robot_models[pan_tilt_robot_name] = model_cam
+            pose_mount_maps[pan_tilt_robot_name] = {
+                "euroc_c2_mast_to_cam_joints::link2": "euroc_c2_mast_to_cam_joints::base"
+            }
+            include(model_cam, "euroc_c2_mast_to_cam_joints", pose=pan_tilt_base_in_world)
+
+        if "sensors" in desc:
+            # add robot mounted cameras
+            sensors_at_parents = {}
+            relatives = {}
+            for sensor_name, sensor in desc.get("sensors", {}).iteritems():
+                if "relative_pose" not in sensor:
+                    continue
+                relatives[sensor_name] = sensor["relative_pose"]["from"]
+
+            sensor_sequence = []
+            all_sensors = desc.get("sensors", {}).keys()
+            # first non-relatives!
+            for s in all_sensors:
+                if s not in relatives:
+                    sensor_sequence.append(s)
+            # now all relatives!
+            while len(relatives):
+                for s, dep in relatives.iteritems():
+                    if dep in sensor_sequence:
+                        # ok!
+                        sensor_sequence.append(s)
+                        del relatives[s]
+                        break
+
+            for sensor_name in sensor_sequence:
+                sensor = desc["sensors"][sensor_name]
+
+                on_robot = False
+                parent = sensor["parent"]
+                parent_model = None # todo: always needs robot...
+                for robot_name, robot_model in robot_models.iteritems():
+                    prefix = robot_name + "::"
+                    if parent.startswith(prefix):
+                        on_robot = robot_name
+                        parent_model = robot_model
+                        parent = parent[len(prefix):]
+                        break
+                #print "sensor %r is mounted on %r (is_robot: %s)" % (sensor_name, parent, on_robot)
+
+                if on_robot and on_robot in pose_mount_maps and parent in pose_mount_maps[on_robot]:
+                    pose_parent = pose_mount_maps[on_robot][parent]
+                else:
+                    pose_parent = parent
+
+                if pose_parent == "base":
+                    pose_parent = "%s::base" % on_robot
+
+                if pose_parent.endswith("::base"):
+                    pose_parent_wobase = pose_parent[:-6]
+                else:
+                    pose_parent_wobase = pose_parent
+
+                if pose_parent in self.known_poses:
+                    base = self.known_poses[pose_parent]
+                elif pose_parent_wobase in self.known_poses:
+                    base = self.known_poses[pose_parent_wobase]
+                else:
+                    raise Exception("don't know world pose of parent %r for sensor %r" % (pose_parent, sensor_name))
+
+                if "relative_pose" in sensor and not "pose" in sensor:
+                    # realtive
+                    rp = sensor["relative_pose"]
+                    pose_from, rel_pose = rp["from"], get_frame_from_pose(rp["pose"])
+                    # search other sensor with same parent!
+                    try:
+                        from_base = sensors_at_parents[parent][pose_from]
+                    except:
+                        raise Exception("could not find parent %r for relative pose of sensor %r" % (parent, sensor_name))
+                    cam_base = dot(from_base, rel_pose)
+                elif "relative_pose" not in sensor and "pose" in sensor:
+                    parent_to_cam = get_frame_from_pose(sensor["pose"])
+                    if not on_robot:
+                        base = dot(inv(robot_frame), base)
+                    cam_base = dot(base, parent_to_cam)
+                elif "relative_pose" in sensor and "pose" in sensor:
+                    raise Exception("relative_pose AND pose specified for sensor %r!" % sensor_name)
+                else:
+                    raise Exception("no pose specified for sensor %r" % sensor_name)
+
+
+                cam_link = generate_cam_link(parent_model, "euroc_c2_simple_cam", sensor_name, sensor, pose=cam_base)
+                parent_model.append(cam_link)
+
+                # include(model, "euroc_c2_simple_cam", pose=cam_base, alias=sensor_name)
+                fix(parent_model, parent, sensor_name + "_link")
+
+                if parent not in sensors_at_parents:
+                    sensors_at_parents[parent] = {}
+                sensors_at_parents[parent][sensor_name] = cam_base
+ 	    
+        # instanciate objects
+        if "conveyor_belt" in desc:
+            belt = desc["conveyor_belt"]
+            conveyor_template = belt["object_template"]
+        else:
+            conveyor_template = None
+
+        for obj_name, obj in desc.get("objects", {}).iteritems():
+            if obj_name == conveyor_template:
+                continue
+            if "shape" not in obj:
+                print "skipping object %r without shape(s)" % obj_name
+                continue
+            self._instanciate_object(desc, world, "obj:%s" % obj_name, obj)
+
+        # obstacles
+        for obj_name, obj in desc.get("obstacles", {}).iteritems():
+            if "shape" not in obj:
+                print "skipping object %r without shape(s)" % obj_name
+                continue
+            self._instanciate_object(desc, world, "obstacle:%s" % obj_name, obj, is_obstacle=True)
+
+        # visualize target zones
+        if "target_zones" in desc:
+            model = etree.SubElement(world, "model", name="target_zones")
+            etree.SubElement(model, "static").text = stringify(True)
+            for zone_name, zone in desc["target_zones"].iteritems():
+                p = eye(4)
+                p[:3, 3] = zone["target_position"]
+                r = zone["max_distance"]
+                
+                link = etree.SubElement(model, "link", name="tz:%s" % zone_name)
+                etree.SubElement(link, "pose").text = get_pose_from_frame(p)
+                visual = etree.SubElement(link, "visual", name="tz:%s:v1" % zone_name)
+
+                mat = etree.SubElement(visual, "material")
+                etree.SubElement(mat, "diffuse").text = stringify(get_color(desc["objects"][zone["expected_object"]]["color"]))
+
+                g = etree.SubElement(visual, "geometry")
+                cyl = etree.SubElement(g, "cylinder")
+                etree.SubElement(cyl, "radius").text = stringify(r)
+                etree.SubElement(cyl, "length").text = stringify(0.005)
+        
+
+        # create conveyor belt
+        if "conveyor_belt" in desc:
+            belt = desc["conveyor_belt"]
+            move_direction = array(belt["move_direction_and_length"]) + array(belt.get("move_direction_and_length_offset", [0, 0, 0]))
+            drop_center_point = array(belt["drop_center_point"]) + array(belt.get("drop_center_point_offset", [0, 0, 0]))
+            drop_deviation = array(belt["drop_deviation"]) + array(belt.get("drop_deviation_offset", [0, 0, 0]))
+
+            belt["move_direction_and_length"] = move_direction.tolist()
+            belt["drop_center_point"] = drop_center_point.tolist()
+            belt["drop_deviation"] = drop_deviation.tolist()
+
+            wider = 0.025
+            #start_before_drop = 0.05
+            start_before_drop = 0.10
+            length = norm(move_direction) # in x-dir
+            move_direction = move_direction / length
+            drop_center = eye(4)
+            drop_center[:3, 3] = drop_center_point
+            drop_center[:3, 0] = move_direction
+            drop_center[:3, 2] = 0, 0, 1 # z up!
+            drop_center[:3, 1] = norm_cross(drop_center[:3, 2], drop_center[:3, 0])
+            drop_center[:3, 2] = norm_cross(drop_center[:3, 0], drop_center[:3, 1])
+
+            drop_center[:3, :3] = dot(drop_center[:3, :3], angle_axis2rot(belt.get("belt_roll", 0), [1, 0, 0]))
+
+            #drop_center[:3, 3] += -0.04 * move_direction
+
+            model = etree.SubElement(world, "model", name="conveyor_belt")
+            etree.SubElement(model, "pose").text = get_pose_from_frame(drop_center)
+            #etree.SubElement(model, "static").text = stringify(True)
+
+            mat = etree.Element("material")
+            etree.SubElement(mat, "diffuse").text = stringify(get_color(belt["color"]))
+
+            belt_width = drop_deviation[1] * 2 + 0.04
+            belt_thick = 0.01
+            
+            p1 = eye(4)
+            p1[:3, 3] += 0.5 * (length - start_before_drop) * p1[:3, 0]
+            p1[:3, 3] -= 0.5 * belt_thick * p1[:3, 2]
+
+            link = etree.SubElement(model, "link", name="fixed_belt")
+            etree.SubElement(link, "kinematic").text = stringify(True)
+            etree.SubElement(link, "self_collide").text = stringify(False)
+            visual = etree.SubElement(link, "visual", name="fixed_belt_v1")
+            etree.SubElement(visual, "pose").text = get_pose_from_frame(p1)
+            visual.append(mat)
+
+            collision = etree.SubElement(link, "collision", name="belt_c1")
+            surface = etree.SubElement(collision, "surface")
+            bullet_friction = etree.SubElement(
+                etree.SubElement(surface, "friction"), "bullet")
+            etree.SubElement(bullet_friction, "surface_material_name").text = belt["surface_material"]
+            etree.SubElement(collision, "pose").text = get_pose_from_frame(p1)
+
+            g = etree.Element("geometry")
+            box = etree.SubElement(g, "box")
+            etree.SubElement(box, "size").text = stringify([length + start_before_drop, belt_width + 2 * wider, belt_thick])
+
+            visual.append(copy.deepcopy(g))
+            collision.append(copy.deepcopy(g))
+
+            # instanciate objects
+            template_obj = desc["objects"][conveyor_template]
+            n_objects = belt["n_objects"]
+            start_frame = eye(4)
+            start_frame[2, 3] = 2 * -table_height
+            for i in xrange(n_objects):
+                start_frame[0, 3] = 4 + i * 0.25
+                self._instanciate_object(desc, world, "cb_obj_%d" % i, template_obj, override_pose=get_pose_from_frame(start_frame))
+            # are there pre-generated drop poses?
+            if belt.get("fixed_drop_poses"):
+                drop_poses = []
+                belt["drop_poses"] = drop_poses
+                #drop_dev = array([0.10, 0, 0])
+                for i in xrange(n_objects):
+                    drop_pose = array(drop_center)
+                    drop_pose[2, 3] += belt["drop_height"]
+                    drop_dev = get_frame_from_pose(belt["fixed_drop_poses"][i])
+                    drop_pose = dot(drop_pose, drop_dev)
+                    drop_poses.extend(get_pose_from_frame(drop_pose, numeric=True))
+            elif "drop_poses" not in belt:
+                raise Exception("warning: there are no pre-generated drop poses - generating them randomly!")
+                drop_poses = []
+                belt["drop_poses"] = drop_poses
+                drop_deviation = array(belt["drop_deviation"])
+                for i in xrange(n_objects):
+                    drop_pose = array(drop_center)
+                    drop_pose[2, 3] += belt["drop_height"]
+                    r = (random.random((3, )) - 0.5) * 2
+                    drop_dev = drop_deviation * r
+                    drop_pose[:3, 3] += dot(drop_pose[:3, :3], drop_dev)
+
+                    r = (random.random((3, )) - 0.5) * 2
+                    drop_pose[:3, :3] = get_rot_from_rpy(array(belt["drop_rotation_randomness"]) * r)
+                    drop_poses.extend(get_pose_from_frame(drop_pose, numeric=True))
+        
+        if "avatars" in desc:
+            #_instanciate_avatars
+            for avatar_name, avatar in desc.get("avatars", {}).iteritems():  
+                model = etree.SubElement(world, "model", name=avatar_name)   
+                etree.SubElement(model, "pose").text = stringify(world_to_ground)
+
+                if "box" not in avatar:
+                    continue
+                link = etree.SubElement(model, "link", name="avatar_body")
+                etree.SubElement(link, "kinematic").text = stringify(False)
+
+                visual = etree.SubElement(link, "visual", name="avatar_image")
+                etree.SubElement(visual, "pose").text = stringify([0, 0, avatar['box'][2] / 2, 0, 0, 0])
+
+                mat = etree.SubElement(visual,"material")
+                script = etree.SubElement(mat, "script")
+                etree.SubElement(script, "uri").text = "model://materials/scripts"
+                etree.SubElement(script, "uri").text = "model://materials/textures"
+                etree.SubElement(script, "name").text = avatar_name + "/Diffuse"
+
+                geom = etree.SubElement(visual, "geometry")
+                mesh = etree.SubElement(geom, "mesh")
+		etree.SubElement(mesh, "uri").text = stringify(avatar['file'])
+
+
+	save_xml(fn, root)
+        desc["world_file"] = fn
+        fp = file(fn + ".yml", "wb")
+        yaml_dump = yaml.dump(desc)
+        fp.write(yaml_dump)
+        fp.close()
+        
+
+    def _reload_scenes(self):
+        scenes = self.yaml_load(self.scenes_file)
+        self.scenes = {}
+        dn = os.path.dirname(self.scenes_file)
+        def iter_scenes():
+            for sfn in scenes["avaliable_scenes"]:
+                yield sfn
+            for e in os.listdir(dn):
+                if "manual_" not in e:
+                    continue
+                yield e
+        for sfn in iter_scenes():
+            bn = os.path.basename(sfn)
+            if "." in bn:
+                bn = bn.rsplit(".", 1)[0]
+            self.scenes[bn] = self.yaml_load(sfn)
+            
+    def yaml_load(self, fn):
+        if not os.path.isfile(fn):
+            if fn[0] != "/":
+                fn2 = os.path.join(self.scenes_base, fn)
+                if os.path.isfile(fn2):
+                    return self.yaml_load(fn2)
+            raise Exception("yaml file %r not found!" % fn)
+        fp = file(fn, "rb")
+        data = yaml.load(fp)
+        fp.close()
+        data["filename"] = os.path.realpath(fn)
+        return data
+
+    def run(self):
+        print "EuRoC Challenge 2 Stage 1 task selector ready."
+        if ros_interface:
+            #def give_ros_time():
+            #    print "time"
+            #    time.sleep(0.05)
+            #    return True
+            #gobject.timeout_add(100, give_ros_time)
+            #return self.loop.run()
+            #return rospy.spin()
+            while True:
+                if not self.simulator_stopped and self.simulator is not None:
+                    poll_ret = self.simulator.poll()
+                    if poll_ret is not None:
+                        rc = self.simulator.returncode
+                        print "unexpected stop of gzserver process %d - returncode %d" % (self.simulator.pid, rc)
+                        if rc < 0:
+                            print "gazebo server seems to be killed by signal %d - try to upload core dumps..." % -rc
+                            os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % self.last_user_id)
+                        self._stop_simulator()
+                time.sleep(0.5)
+
+            #while True:
+            #    print "select block"
+            #    select.select([0], [], [])
+            #    print "select unblock!"
+            #    raw_input()
+        else:
+            return self.loop.run()
+
+    def complete_public_scene(self, scene):
+        publics = []
+        self._collect_scene(scene, publics, [])
+        desc = dict()
+        for data in publics:
+            deep_update(desc, data)
+        return desc
+
+    if ros_interface:
+        def on_list_scenes(self, req):
+            print 'Received list scenes request'
+            resp = ListScenesResponse()
+            try:
+                self._reload_scenes()
+                resp.scenes = []
+                for sn, scene in self.scenes.iteritems():
+                    if sn.startswith("manual_"): continue
+                    s = Scene()
+                    s.name = sn
+                    s.description_yaml = yaml.dump(self.complete_public_scene(scene))
+                    resp.scenes.append(s)
+                resp.error_message = ""
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+            return resp
+
+        def on_start_simulator(self, req):
+            resp = StartSimulatorResponse()
+            try:
+                self._reload_scenes()
+                self._stop_simulator()
+                scene_desc = req.scene_name.split("/")
+                scene_name = scene_desc[0]
+                if not scene_name in self.scenes:
+                    raise Exception('Requested scene %s is not available!' % scene_name)
+                scene = self.scenes[scene_name]
+                rospy.set_param('use_sim_time', True)
+                self._start_simulator(
+                    req.user_id, 
+                    scene, 
+                    without_viewer=("wo_viewer" in scene_desc[1:]),
+                    without_log=("wo_log" in scene_desc[1:] or "no_log" in scene_desc[1:]),
+                    build=("build" in scene_desc[1:]),
+                    no_start=("no_start" in scene_desc[1:]),
+                    )
+                self.public_description["log_filename"] = self.log_fn
+                resp.description_yaml = yaml.dump(self.public_description)
+                resp.error_message = ""
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+            return resp
+
+        def on_stop_simulator(self, req):
+            resp = StopSimulatorResponse()
+            try:
+                if not self._stop_simulator(True):
+                    print "simulator was not running"
+                rospy.set_param('use_sim_time', False)
+                resp.error_message = ""
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+            return resp
+
+    else: #ln interface
+        def on_list_scenes(self, svc, req, resp):
+            try:
+                self._reload_scenes()
+                resp.scenes = []
+                for sn, scene in self.scenes.iteritems():
+                    if sn.startswith("manual_"): continue
+                    s = resp.new_scene_t_packet()
+                    s.scene_name = sn
+                    
+                    #print "read scene %r" % sn
+                    s.yaml_data = yaml.dump(self.complete_public_scene(scene))
+                    resp.scenes.append(s)
+                resp.error_message = ""
+                svc.respond()
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+                svc.respond()
+
+        def on_start_simulator(self, svc, req, resp):
+            try:
+                self._reload_scenes()
+                self._stop_simulator()
+                scene_desc = req.scene_name.split("/")
+                scene_name = scene_desc[0]
+                scene = self.scenes[scene_name]
+                self._start_simulator(
+                    req.user_id, 
+                    scene, 
+                    without_viewer=("wo_viewer" in scene_desc[1:]),
+                    without_log=("wo_log" in scene_desc[1:] or "no_log" in scene_desc[1:]),
+                    build=("build" in scene_desc[1:]),
+                    no_start=("no_start" in scene_desc[1:]),
+                    )
+                self.public_description["log_filename"] = self.log_fn
+                resp.yaml_data = yaml.dump(self.public_description)
+                resp.error_message = ""
+                svc.respond()
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+                svc.respond()
+
+        def on_stop_simulator(self, svc, req, resp):
+            try:
+                if not self._stop_simulator(True):
+                    print "simulator was not running"
+                resp.error_message = ""
+                svc.respond()
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+                svc.respond()
+        
+        def on_start_replay_simulator(self, svc, req, resp):
+            try:
+                self._stop_simulator()
+                self._start_replay_simulator(req.log_fn)
+                resp.error_message = ""
+                svc.respond()
+            except:
+                traceback.print_exc()
+                resp.error_message = traceback.format_exc()
+                svc.respond()
+
+
+if __name__ == "__main__":
+    sel = task_selector()
+    sel.run()
