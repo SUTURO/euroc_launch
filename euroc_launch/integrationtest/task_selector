@@ -856,12 +856,12 @@ class task_selector(object):
 
         self.known_poses = {}
         def include(parent, model, pose=None, alias=None):
-        if alias is None:
+	    if alias is None:
                 alias = model
             inc = etree.SubElement(parent, "include")
-        etree.SubElement(inc, "uri").text = "model://%s" % model
-        
-        if pose is not None:
+	    etree.SubElement(inc, "uri").text = "model://%s" % model
+	    
+	    if pose is not None:
                 if len(pose) == 6:
                     self.known_poses[alias] = get_frame_from_pose(pose)
                     etree.SubElement(inc, "pose").text = stringify(pose)
@@ -877,7 +877,7 @@ class task_selector(object):
         def fix(parent_elem, parent, child, alias=None):
             if alias is None:
                 alias = "%s_on_%s" % (child, parent)
-        jnt = etree.SubElement(parent_elem, "joint", type="revolute", name=alias)
+	    jnt = etree.SubElement(parent_elem, "joint", type="revolute", name=alias)
             etree.SubElement(jnt, "parent").text = parent
             etree.SubElement(jnt, "child").text = child
             axis = etree.SubElement(jnt, "axis")
@@ -998,7 +998,7 @@ class task_selector(object):
             include(model, "kuka_lwr", pose=robot_pose)
             fix(model, "euroc_c2_two_axis::link2", "kuka_lwr::base", "lwr_fixed_on_two_axes")
             robot_frame = get_frame_from_pose(robot_pose)
-            
+	        
             robot_base_to_tcp = array( # from verbose2/euroc_c2/LWR model/export to gazebo/get_base_to_tcp
                 [[ 1.   ,  0.   ,  0.   ,  0.   ],
                  [ 0.   ,  1.   ,  0.   , -0.   ],
@@ -1132,7 +1132,7 @@ class task_selector(object):
                 if parent not in sensors_at_parents:
                     sensors_at_parents[parent] = {}
                 sensors_at_parents[parent][sensor_name] = cam_base
-        
+ 	    
         # instanciate objects
         if "conveyor_belt" in desc:
             belt = desc["conveyor_belt"]
@@ -1296,10 +1296,10 @@ class task_selector(object):
 
                 geom = etree.SubElement(visual, "geometry")
                 mesh = etree.SubElement(geom, "mesh")
-        etree.SubElement(mesh, "uri").text = stringify(avatar['file'])
+		etree.SubElement(mesh, "uri").text = stringify(avatar['file'])
 
 
-    save_xml(fn, root)
+	save_xml(fn, root)
         desc["world_file"] = fn
         fp = file(fn + ".yml", "wb")
         yaml_dump = yaml.dump(desc)
