@@ -1,0 +1,6 @@
+#!/bin/bash
+SCRIPTS=$(dirname "$0")
+echo Installing integration test
+sudo cp $SCRIPTS/../integrationtest/libTestPlugin.so /opt/euroc_c2s1/lib/gazebo-2.2/plugins/
+sudo cp $SCRIPTS/../integrationtest/task_selector /opt/euroc_c2s1/bin/
+echo Finished!
