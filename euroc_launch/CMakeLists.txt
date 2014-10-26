@@ -6,6 +6,7 @@ project(euroc_launch)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
+	suturo_msgs
 )
 
 ## System dependencies are found with CMake's conventions
