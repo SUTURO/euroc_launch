@@ -2,7 +2,7 @@ includes:
   - common_defaults.yml
 
 public_description:
-  task_name: SUTURO task 1 variant 3
+  task_name: task 1 variant 3 SUTURO
   description: there are 3 objects lying on the table (red_cube, green_cylinder, blue_handle). The green cylinder is spawned on the red target zone, the red cube is spawned on the green target zone.
     their projected origin needs to be placed in their respective target zones (zone_A, zone_B, zone_C) on the table.
   

@@ -3,7 +3,7 @@ includes:
   - typical_errors.yml
 
 public_description:
-  task_name: SUTURO task 5 variant 1
+  task_name: task 5 variant 1 SUTURO
   description: puzzle with easy parameters (no rotation, close to each other)
   
   puzzle_fixture:

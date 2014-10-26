@@ -2,7 +2,7 @@ includes:
   - task4_v1_common.yml
 
 public_description:
-  task_name: SUTURO task 4/2 fixed
+  task_name: task 4/2 fixed SUTURO
 
 internal_description:
   objects:

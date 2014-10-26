@@ -3,7 +3,7 @@ includes:
   - typical_errors.yml
 
 public_description:
-  task_name: SUTURO task 5 variant 2
+  task_name: task 5 variant 2 SUTURO
   description: puzzle with moderate parameters, this scene matches the original task5_v1 (rotation, close to each other)
   
   puzzle_fixture:
