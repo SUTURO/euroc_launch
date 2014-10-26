@@ -21,13 +21,16 @@ private:
   void checkTargetZones(const std::vector<suturo_msgs::TargetZone> &targetZones);
   void checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &targetZones);
   suturo_msgs::Task description;
-  gztest::TestClient client;
+  gztest::TestClient* client;
   int points;
 };
 
-TestNode::TestNode() :
-    client("http://localhost:8080")
+TestNode::TestNode()
 {
+  std::string master(getenv("ROS_MASTER_URI"));
+  master = master.substr(0, master.rfind(":"));
+  master += ":8080";
+  client = new gztest::TestClient(master);
   points = 0;
 }
 
@@ -38,7 +41,7 @@ void TestNode::parseCallback(const suturo_msgs::Task &description)
 
 void TestNode::startListening()
 {
-  client.MonitorLinkEvents("lwr", "gripper_fixed_on_lwr", "base");
+  client->MonitorLinkEvents("lwr", "gripper_fixed_on_lwr", "base");
   printf("Registered link event monitor\n");
 }
 
@@ -67,7 +70,7 @@ void TestNode::checkTargetZones(const std::vector<suturo_msgs::TargetZone> &targ
   for (std::vector<suturo_msgs::TargetZone>::const_iterator targetZone = targetZones.begin();
       targetZone != targetZones.end(); ++targetZone)
   {
-    std::vector<double> pos = client.GetPosition("obj:" + (*targetZone).expected_object);
+    std::vector<double> pos = client->GetPosition("obj:" + (*targetZone).expected_object);
     double dx = pos[0] - (*targetZone).target_position.x;
     double dy = pos[1] - (*targetZone).target_position.y;
     double dist = sqrt(dx * dx + dy * dy);
@@ -85,7 +88,7 @@ void TestNode::checkTargetZones(const std::vector<suturo_msgs::TargetZone> &targ
 
 void TestNode::checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &targetZones)
 {
-  std::vector<WatcherEvent> list = client.GetLinkEventHistory("lwr", "gripper_fixed_on_lwr", "base");
+  std::vector<WatcherEvent> list = client->GetLinkEventHistory("lwr", "gripper_fixed_on_lwr", "base");
   for (std::vector<suturo_msgs::TargetZone>::const_iterator targetZone = targetZones.begin();
       targetZone != targetZones.end(); ++targetZone)
   {
@@ -107,6 +110,7 @@ void TestNode::checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &t
 
 TestNode::~TestNode()
 {
+  delete client;
 }
 
 int main(int _argc, char** _argv)
