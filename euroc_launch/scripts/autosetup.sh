@@ -4,6 +4,7 @@ echo Installing EuRoC stack
 echo 
 ROOT=~/
 sudo apt-get update
+sudo apt-get upgrade
 
 # Simulator dependencies
 sudo apt-get -y install wget libgts-0.7-5 ros-hydro-desktop-full ros-hydro-moveit-full libprotobuf7 libtbb2 libtar0 libcegui-mk2-0.7.5 python-wstool
