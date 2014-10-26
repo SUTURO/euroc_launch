@@ -9,7 +9,9 @@
   <node pkg="tf" type="static_transform_publisher" name="tdepth_pcl_broadcaster" args="0 0 0 0 0 -1.57079632679 tdepth_pcl_z tdepth_pcl 100" />
 
   <node pkg="suturo_perception_node" name="suturo_perception_gripper_node" type="suturo_perception_node" output="screen" args="--type gripper"></node>
-  <node pkg="suturo_perception_node" name="suturo_perception_scene_node" type="suturo_perception_node" output="screen" args="--type scene"></node>
+  <node pkg="perception_utils" name="odom_combiner" type="odom_combiner" output="screen" args=""></node>
+  <node launch-prefix="gdb -ex run --args" pkg="suturo_perception_node" name="suturo_perception_scene_node" type="suturo_perception_node" output="screen" args="--type scene"></node>
+>>>>>>> master
 	<node pkg="euroc_perception_color_recognizer" name="color_recognizer" type="color_recognizer.py" output="screen"></node>
 </launch>
 
