@@ -1,4 +1,6 @@
 <launch>
+	<node pkg="perception_utils" name="required_nodes" type="publish_required_nodes" output="screen" args="-t 0"></node>
+
 	<node pkg="pointcloud_publisher" name="publish_pointcloud_scene" type="publish_pointcloud" output="screen" args="-c scene"></node>
   <node pkg="pointcloud_publisher" name="publish_pointcloud_tcp" type="publish_pointcloud" output="screen" args="-c tcp"></node>
 

@@ -1,4 +1,6 @@
 <launch>
+	<node pkg="perception_utils" name="required_nodes" type="publish_required_nodes" output="screen" args="-t 5"></node>
+
 	<node pkg="pointcloud_publisher" name="publish_pointcloud_tcp_fast" type="publish_pointcloud" output="screen" args="-c tcp -s 0"></node>
 
   <node pkg="tf" type="static_transform_publisher" name="tdepth_pcl_broadcaster_z" args="0 0 0 -1.57079632679 0 0 tdepth tdepth_pcl_z 100" />
