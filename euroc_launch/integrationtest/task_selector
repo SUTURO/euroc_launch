@@ -416,6 +416,11 @@ class task_selector(object):
     def _start_simulator(self, user_id, scene, without_viewer=False, no_start=False, build=True, without_log=False):
         fn = scene["filename"]
         self.last_user_id = user_id
+        if "#" in user_id[1:]:
+            user_id_wo_pw = user_id.rsplit("#", 1)[0]
+        else:
+            user_id_wo_pw = user_id
+        self.last_user_id_wo_pw = user_id_wo_pw
         print "start simulator with user_id %r and scene file %r" % (user_id, fn)
         # generate world file
         self._without_log = without_log
@@ -450,7 +455,7 @@ class task_selector(object):
                     print msg
                     if rc < 0:
                         print "gazebo server seems to be killed by signal %d - try to upload core dumps..." % -rc
-                        os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % user_id)
+                        os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % user_id_wo_pw)
                     self._stop_simulator()
                     raise Exception(msg + "\nplease check terminal output in simserv VM")
                 try:
@@ -466,7 +471,7 @@ class task_selector(object):
                 msg = "timeout waiting for gazebo server to startup."
                 print msg
                 print "try to upload core dump from still running gazebo process..."
-                os.system("/opt/euroc_c2s1/bin/upload_core '%s' gzserver" % user_id)
+                os.system("/opt/euroc_c2s1/bin/upload_core '%s' gzserver" % user_id_wo_pw)
                 self.simulator_stopped = False
                 self._stop_simulator()
                 raise Exception(msg + "\nplease check terminal output in simserv VM.\n")
@@ -764,8 +769,12 @@ class task_selector(object):
         if self._without_log:
             self.log_fn = ""
         else:
+            if "#" in user_id[1:]:
+                user_id_wo_pw = user_id.rsplit("#", 1)[0]
+            else:
+                user_id_wo_pw = user_id
             self.log_fn = os.path.join(self.logs_base, "euroc_c2_s1_%s_%s.log" % (
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), user_id))
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"), user_id_wo_pw))
             etree.SubElement(plugin, "log_file").text = self.log_fn
         etree.SubElement(world, "plugin", name="gztest", filename=desc.get("plugin_filename", "libTestPlugin.so"))
 
@@ -1355,7 +1364,7 @@ class task_selector(object):
                         print "unexpected stop of gzserver process %d - returncode %d" % (self.simulator.pid, rc)
                         if rc < 0:
                             print "gazebo server seems to be killed by signal %d - try to upload core dumps..." % -rc
-                            os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % self.last_user_id)
+                            os.system("/opt/euroc_c2s1/bin/upload_core '%s' -f /tmp/*core*" % self.last_user_id_wo_pw)
                         self._stop_simulator()
                 time.sleep(0.5)
 
