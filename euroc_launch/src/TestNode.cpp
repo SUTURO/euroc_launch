@@ -49,9 +49,15 @@ void TestNode::check()
 {
   ros::NodeHandle nh;
   ros::Subscriber parser = nh.subscribe("/suturo/yaml_pars0r", 1, &TestNode::parseCallback, this);
+  time_t timeout = time(0) + 10;
   while (true)
   {
     ros::spinOnce();
+    if(time(0) > timeout)
+    {
+      printf("No message on /suturo/yaml_pars0r received after 10 seconds, aborting.\n");
+      exit(EXIT_FAILURE);
+    }
     if (this->description.task_name.length() == 0)
     {
       sleep(1);
