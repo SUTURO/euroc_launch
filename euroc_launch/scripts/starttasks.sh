@@ -4,4 +4,4 @@
 
 # Dont use v3 tasks, these are just slow versions of v2 tasks
 # DO NOT change, final test version:
-rosrun suturo_planning_startup start_complete_demo.py --tasks=task1_v1,task2_v1_1,task2_v1_2,task2_v1_3,task3_v1,task4_v1_1,task4_v1_2,task4_v1_3,task6_v1 >tmp/euroc_c2/starttasks.log
+rosrun suturo_planning_startup start_complete_demo.py --tasks=task1_v1,task2_v1_1,task2_v1_2,task2_v1_3,task3_v1,task4_v1_1,task4_v1_2,task4_v1_3,task6_v1 >/tmp/euroc_c2/starttasks.log
