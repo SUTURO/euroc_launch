@@ -16,13 +16,13 @@ sudo apt-get -y install libpcl-1.7-all ros-hydro-pcl-ros ros-hydro-pcl-conversio
 mkdir -p $ROOT
 mkdir -p $ROOT/download
 cd $ROOT/download
-wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-interface_1.0.7_i386.deb
-sudo dpkg -i euroc-c2s1-interface_1.0.7_i386.deb
+wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-interface_1.0.18_i386.deb
+sudo dpkg -i euroc-c2s1-interface_1.0.18_i386.deb
 if [ "$1" == "--with-server" ]
 	then
 	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-scenes_1.0.14_i386.deb
-	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-simulator_1.0.10_i386.deb
-	sudo dpkg -i euroc-c2s1-scenes_1.0.14_i386.deb euroc-c2s1-simulator_1.0.10_i386.deb
+	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-simulator_1.0.19_i386.deb
+	sudo dpkg -i euroc-c2s1-scenes_1.0.14_i386.deb euroc-c2s1-simulator_1.0.19_i386.deb
 fi
 tee $ROOT/.ssh/id_rsa <<KEYFILE
 -----BEGIN RSA PRIVATE KEY-----
