@@ -53,7 +53,7 @@ void TestNode::check()
   while (true)
   {
     ros::spinOnce();
-    if(time(0) > timeout)
+    if (time(0) > timeout)
     {
       printf("No message on /suturo/yaml_pars0r received after 10 seconds, aborting.\n");
       exit(EXIT_FAILURE);
@@ -107,7 +107,9 @@ void TestNode::checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &t
     {
       printf("SUCCESS: %s was grasped!\n", (*targetZone).expected_object.c_str());
       points += 5;
-    } else {
+    }
+    else
+    {
       printf("FAIL: %s was NOT grasped!\n", (*targetZone).expected_object.c_str());
     }
 
