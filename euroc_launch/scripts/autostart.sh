@@ -7,10 +7,15 @@ source /opt/ros/hydro/setup.bash
 source /opt/euroc_c2s1/ros/install/setup.bash
 source $ROOT/euroc_ws/devel/setup.bash
 mkdir -p /tmp/euroc_c2
+cd $ROOT/euroc_ws/src/euroc_msgs
+MSGSTATE=`git log | head -n1`
 cd $ROOT/euroc_ws
 echo -n Updating...
 wstool update 2>1 >/tmp/euroc_c2/update.log
 echo " done"
+if [ "$MSGSTATE" != "`git log | head -n1`" ]
+	then rm -rf devel/ build/
+fi
 echo -n Building...
 catkin_make 2>1 >/tmp/euroc_c2/build.log
 echo " done"
