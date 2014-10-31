@@ -13,9 +13,11 @@ cd $ROOT/euroc_ws
 echo -n Updating...
 wstool update 2>1 >/tmp/euroc_c2/update.log
 echo " done"
+cd $ROOT/euroc_ws/src/euroc_msgs
 if [ "$MSGSTATE" != "`git log | head -n1`" ]
-	then rm -rf devel/ build/
+	then rm -rf $ROOT/euroc_ws/devel $ROOT/euroc_ws/build
 fi
+cd $ROOT/euroc_ws
 echo -n Building...
 catkin_make 2>1 >/tmp/euroc_c2/build.log
 echo " done"
