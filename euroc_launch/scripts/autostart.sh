@@ -6,9 +6,10 @@ ROOT=~/
 source /opt/ros/hydro/setup.bash
 source /opt/euroc_c2s1/ros/install/setup.bash
 source $ROOT/euroc_ws/devel/setup.bash
+mkdir -p /tmp/euroc_c2
 cd $ROOT/euroc_ws
-wstool update
-catkin_make
+wstool update >/tmp/euroc_c2/update.log
+catkin_make >/tmp/euroc_c2/build.log
 rosrun euroc_launch starttasks.sh
 echo "###Perception GIT" >>/tmp/euroc_c2/git.log
 cd $ROOT/euroc_ws/src/euroc_perception
