@@ -130,6 +130,10 @@ int main(int _argc, char** _argv)
     exit(EXIT_FAILURE);
   }
   ros::init(_argc, _argv, "TestNode");
+  if(!ros::master::check()) {
+    printf("Failed to contact rosmaster!\n");
+    exit(EXIT_FAILURE);
+  }
   TestNode node;
   if (strcmp(_argv[1], "--init") == 0)
   {
