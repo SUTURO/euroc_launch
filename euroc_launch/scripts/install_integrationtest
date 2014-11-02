@@ -1,5 +1,10 @@
 #!/bin/bash
 SCRIPTS=$(dirname "$0")
+SIMVERSION="1.0.19"
+if [ "`dpkg -l | grep euroc | grep simulator | grep $SIMVERSION`" == "" ]
+	then echo Wrong simulator version installed! Currently supported version is $SIMVERSION. Exiting.
+	exit
+fi
 echo Installing integration test
 sudo cp $SCRIPTS/../integrationtest/libTestPlugin.so /opt/euroc_c2s1/lib/gazebo-2.2/plugins/
 sudo cp $SCRIPTS/../integrationtest/libjsonrpc.so /opt/euroc_c2s1/lib/libjsonrpc.so

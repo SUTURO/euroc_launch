@@ -1,5 +1,10 @@
 #!/bin/bash
 SCRIPTS=$(dirname "$0")
+SCENESVERSION="1.0.20"
+if [ "`dpkg -l | grep euroc | grep scenes | grep $SCENESVERSION`" == "" ]
+	then echo Wrong scenes version installed! Currently supported version is $SCENESVERSION. Exiting.
+	exit
+fi
 echo Changing simulator to original 1.0 realtime factor
 sudo cp $SCRIPTS/../scenes/common_defaults_original.yml /opt/euroc_c2s1/scenes/common_defaults.yml
 echo Finished!
