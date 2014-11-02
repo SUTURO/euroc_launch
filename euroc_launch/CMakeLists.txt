@@ -81,7 +81,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES euroc_launch
-#  CATKIN_DEPENDS other_catkin_pkg
+  CATKIN_DEPENDS roscpp suturo_msgs
 #  DEPENDS system_lib
 )
 
