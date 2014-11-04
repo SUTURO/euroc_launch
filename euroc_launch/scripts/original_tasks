@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPTS=$(dirname "$0")
-SCENESVERSION="1.0.20"
+SCENESVERSION="1.0.25"
 if [ "`dpkg -l | grep euroc | grep scenes | grep $SCENESVERSION`" == "" ]
 	then echo Wrong scenes version installed! Currently supported version is $SCENESVERSION. Exiting.
 	exit

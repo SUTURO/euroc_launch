@@ -1079,9 +1079,9 @@ class task_selector(object):
                 # add gripper spec
                 gripper = etree.SubElement(model, "gripper", name="lwr_gripper")
                 gcheck = etree.SubElement(gripper, "grasp_check")
-                etree.SubElement(gcheck, "detach_steps").text = stringify(5)
+                etree.SubElement(gcheck, "detach_steps").text = stringify(20)
                 etree.SubElement(gcheck, "attach_steps").text = stringify(10)
-                etree.SubElement(gcheck, "min_contact_count").text = stringify(85)
+                etree.SubElement(gcheck, "min_contact_count").text = stringify(50)
                 etree.SubElement(gcheck, "update_rate").text = stringify(0.025)
 
                 #etree.SubElement(gripper, "gripper_link").text = "pg70_gripper::finger1"
