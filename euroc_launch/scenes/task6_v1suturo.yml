@@ -1,0 +1,76 @@
+includes:
+  - common_defaults.yml
+
+public_description:
+  task_name: task 6 SUTURO variant 1
+  description: take object from conveyer belt. always the same object. conveyor belt is 5 cm over the table.
+    10 roundes. 5mm/s up to 0.5m/s. drop at target zone.
+  objects:
+    red_cube:
+      color: ff0000
+      description: a red small cube
+      shape:
+        - type: box
+          size: [0.05, 0.05, 0.05]
+          pose: [0, 0, 0, 0, 0, 0]
+          density: 7850
+  
+  target_zones:
+    target_zone:
+      expected_object: red_cube
+      target_position: [ -0.6, 0, 0 ]
+      max_distance: 0.4
+  
+  conveyor_belt:
+    move_direction_and_length: [ 0, -2, 0 ]
+    drop_center_point: [0.3, 1, 0.05]
+    drop_deviation: [ 0.01, 0.1, 0.01]
+    start_speed: 0.005
+    end_speed: 0.5
+    n_objects: 10
+    object_template: red_cube
+
+internal_description:
+  gui_camera_pose: [ -0.62691, -0.00235, 3.58724, 0.0, 1.3418, 0.001012 ]
+  conveyor_belt:
+    visualize_belt: true
+    visualize_fixed_belt: false
+    drop_height: 0.05
+    drop_rotation_randomness: [ 3.15, 3.15, 3.15 ]
+    first_drop: 6
+    # explosion with 0.5
+    #drop_pause: -6
+    drop_pause: 0
+    surface_material: leather
+    color: [ 0.15, 0.15, 0.15 ]
+    fixed_drop_poses:
+      - [ 0.0093, -0.0515, -0.0013,  1.2041, -1.4994,  1.5446]
+      - [ 0.0082, -0.0845, -0.0021,  0.322 , -0.5271,  1.4027]
+      - [-0.0097, -0.0396,  0.0007,  0.9064,  1.1719, -1.5535]
+      - [-0.004 , -0.0679, -0.0019,  1.5497, -0.5329,  1.5111]
+      - [ 0.0046, -0.0927, -0.0033,  0.0047, -0.6246, -1.0193]
+      - [ 0.0013,  0.0804, -0.0028, -0.3085, -0.065 ,  1.556 ]
+      - [ 0.0053, -0.0595,  0.0003,  0.0286,  1.5276,  1.4515]
+      - [ 0.0056,  0.0523,  0.002 , -1.1026,  0.0778, -0.8356]
+      - [ 0.0061, -0.0201,  0.0022, -1.373 ,  0.3071, -0.2716]
+      - [-0.0029,  0.0839,  0.0049, -1.3938, -1.2161,  0.9869]
+
+  objects:
+    red_cube:
+      start_pose: [-0.3, -0.4, 0.03, 0, 0, 0]
+      surface_material: aluminium
+
+  sensors:
+    tcp_rgb_cam:
+      camera:
+        noise: null
+    tcp_depth_cam:
+      camera:
+        noise: null
+    scene_rgb_cam:
+      camera:
+        noise: null
+    scene_depth_cam:
+      camera:
+        noise: null
+
