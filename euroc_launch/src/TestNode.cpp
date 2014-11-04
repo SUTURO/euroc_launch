@@ -130,7 +130,10 @@ void TestNode::checkTask6()
   std::string prefix = "cb_obj_";
   for (int i = 0; i < numObjects; ++i)
   {
-    std::string objectName = prefix + i;
+    std::stringstream stream;
+    stream << prefix;
+    stream << i;
+    std::string objectName = stream.str();
     std::vector<double> pos = client->GetPosition(objectName);
     suturo_msgs::TargetZone tz = this->description.target_zones.front();
     double dx = pos[0] - tz.target_position.x;
@@ -138,12 +141,12 @@ void TestNode::checkTask6()
     double dist = sqrt(dx * dx + dy * dy);
     if (dist < tz.max_distance)
     {
-      printf("SUCCESS: %s is on its target zone!\n", objectName);
-      points += 5;
+      printf("SUCCESS: %s is on its target zone!\n", objectName.c_str());
+      points += 3;
     }
     else
     {
-      printf("FAIL: %s is NOT on its target zone!\n", objectName);
+      printf("FAIL: %s is NOT on its target zone!\n", objectName.c_str());
     }
   }
 }
