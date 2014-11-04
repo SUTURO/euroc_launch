@@ -20,6 +20,7 @@ private:
   void parseCallback(const suturo_msgs::Task &description);
   void checkTargetZones(const std::vector<suturo_msgs::TargetZone> &targetZones);
   void checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &targetZones);
+  void checkTask6();
   suturo_msgs::Task description;
   gztest::TestClient* client;
   int points;
@@ -66,8 +67,15 @@ void TestNode::check()
     break;
   }
   printf("Received task description for task: %s\n", this->description.task_name.c_str());
-  checkTargetZones(this->description.target_zones);
-  checkObjectsGrasped(this->description.target_zones);
+  if (this->description.task_name == "task 6")
+  {
+    checkTask6();
+  }
+  else
+  {
+    checkTargetZones(this->description.target_zones);
+    checkObjectsGrasped(this->description.target_zones);
+  }
   printf("Total number of reached points: %d\n", points);
 }
 
@@ -116,6 +124,30 @@ void TestNode::checkObjectsGrasped(const std::vector<suturo_msgs::TargetZone> &t
   }
 }
 
+void TestNode::checkTask6()
+{
+  int numObjects = this->description.conveyor_belt.n_objects;
+  std::string prefix = "cb_obj_";
+  for (int i = 0; i < numObjects; ++i)
+  {
+    std::string objectName = prefix + i;
+    std::vector<double> pos = client->GetPosition(objectName);
+    suturo_msgs::TargetZone tz = this->description.target_zones.front();
+    double dx = pos[0] - tz.target_position.x;
+    double dy = pos[1] - tz.target_position.y;
+    double dist = sqrt(dx * dx + dy * dy);
+    if (dist < tz.max_distance)
+    {
+      printf("SUCCESS: %s is on its target zone!\n", objectName);
+      points += 5;
+    }
+    else
+    {
+      printf("FAIL: %s is NOT on its target zone!\n", objectName);
+    }
+  }
+}
+
 TestNode::~TestNode()
 {
   delete client;
@@ -130,7 +162,8 @@ int main(int _argc, char** _argv)
     exit(EXIT_FAILURE);
   }
   ros::init(_argc, _argv, "TestNode");
-  if(!ros::master::check()) {
+  if (!ros::master::check())
+  {
     printf("Failed to contact rosmaster!\n");
     exit(EXIT_FAILURE);
   }
