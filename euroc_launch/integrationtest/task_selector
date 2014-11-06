@@ -341,6 +341,10 @@ class task_selector(object):
                     os.kill(w.pid, signal.SIGINT)
                 except:
                     pass
+                try:
+                    os.kill(w.pid, signal.SIGTERM)
+                except:
+                    pass
                 start = time.time()
                 while not w.terminated and time.time() - start < 5:
                     self.loop.get_context().iteration(False)
@@ -447,10 +451,15 @@ class task_selector(object):
         else:
             kwargs = {}
 
+        #self.simulator = subprocess.Popen(
+        #    [gz_server, world_fn], 
+        #    cwd="/tmp",
+        #    shell=False, **kwargs)
+        cmdline = "ulimit -c unlimited; %s %s" % (gz_server, world_fn)
         self.simulator = subprocess.Popen(
-            [gz_server, world_fn], 
-            cwd=os.path.dirname(__file__),
-            shell=False, **kwargs)
+            cmdline, 
+            cwd="/tmp",
+            shell=True, **kwargs)
 
         if ros_interface:
             timeout = 60
@@ -535,6 +544,7 @@ class task_selector(object):
         args.extend(gz_client_args)
         self.viewer = subprocess.Popen(
             args, shell=False,
+            cwd="/" # other cwd. we are not interested in core dump
             #stdout=subprocess.PIPE, stderr=subprocess.STDOUT
         )
         self._register_io("viewer")

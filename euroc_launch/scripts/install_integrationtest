@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPTS=$(dirname "$0")
-SIMVERSION="1.0.24"
+SIMVERSION="1.0.26"
 if [ "`dpkg -l | grep euroc | grep simulator | grep $SIMVERSION`" == "" ]
 	then echo Wrong simulator version installed! Currently supported version is $SIMVERSION. Exiting.
 	exit
