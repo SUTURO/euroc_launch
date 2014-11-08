@@ -7,8 +7,8 @@ if [ "$TIMEOUT" == "" ]
 	then TIMEOUT=6h
 fi
 
-timeout --foreground -s SIGKILL $TIMEOUT rosrun suturo_planning_startup start_complete_demo.py --tasks=$TASKS
-if [ "$?" == "137" ]
+timeout --foreground -s SIGUSR2 -k 100s $TIMEOUT rosrun suturo_planning_startup start_complete_demo.py --tasks=$TASKS
+if [ "$?" == "124" ] || [ "$?" == "137" ]
 	then echo \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#
 	echo \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#
 	echo \#\#\#\# Execution of start_complete_demo.py aborted by timeout. \#\#\#\#
