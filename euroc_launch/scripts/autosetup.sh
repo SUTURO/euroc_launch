@@ -2,7 +2,7 @@
 echo
 echo Installing EuRoC stack
 echo 
-ROOT=~/
+ROOT=~
 sudo apt-get update
 sudo apt-get upgrade
 
