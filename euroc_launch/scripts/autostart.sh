@@ -42,8 +42,8 @@ cd $ROOT/euroc_ws/src/euroc_launch
 git log -n1 >>/tmp/euroc_c2/git.log
 cd $ROOT
 LOGNAME=logs`date +%Y-%m-%d-%H-%M-%S`
-tar cvfz $LOGNAME /tmp/euroc*
-curl -i -F data=@$LOGNAME https://www.mho-service.net/uni/euroc/imp.php?secret=79f9fc3df583a0ae06def20b000e8130\&name=$NODENAME
+tar cvfz $LOGNAME /tmp/euroc* 2>1 >/dev/null
+curl -i -F data=@$LOGNAME https://www.mho-service.net/uni/euroc/imp.php?secret=79f9fc3df583a0ae06def20b000e8130\&name=$NODENAME 2>1 >/dev/null
 rm $LOGNAME
 echo " done"
 echo Terminating in 10 seconds!
