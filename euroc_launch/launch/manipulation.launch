@@ -10,6 +10,8 @@
 
 	<node name="base_controller" pkg="suturo_manipulation_moveit" type="base_controller" respawn="true" output="screen"/>
 
+    <node name="manipulation_controller" pkg="suturo_planning_manipulation" type="manipulation_node.py" respawn="true" output="screen" />
+
 	<include file="$(find suturo_manipulation_moveit)/launch/move_group.launch">
 
 		<arg name="publish_monitored_planning_scene" value="true" />
