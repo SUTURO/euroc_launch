@@ -1,12 +1,10 @@
 FROM ggrandes/ubuntu32:12.04
 
-MAINTAINER Tom Gehrke <tgehrke@tzi.de>
-
-ENV DEBIAN_FRONTEND noninteractive
+MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
 # base tools and graphics drivers
 RUN apt-get update && \
-	apt-get install -y ca-certificates wget apt-utils mesa-utils xserver-xorg-video-all && \
+	apt-get install -y ca-certificates wget sudo apt-utils mesa-utils xserver-xorg-video-all && \
 	apt-get clean
 
 # ros hydro + euroc deps
@@ -18,18 +16,27 @@ RUN	sh -c '. /etc/lsb-release && \
 	rm /bin/sh && ln -s /bin/bash /bin/sh && \
 	apt-get clean
 # Add user suturo
-RUN adduser --disabled-password --shell /bin/bash --gecos '' suturo
+RUN adduser --disabled-password --shell /bin/bash --gecos '' suturo && \
+	adduser suturo sudo && \
+	echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 WORKDIR /home/suturo
 RUN mkdir download && cd download && \
-	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-simulator_1.0.27_i386.deb && \
-	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-scenes_1.0.26_i386.deb && \
-	wget --user=euroc_qualif_c2 --password=4gWHsApa http://projects.laas.fr/euroc/euroc_qualif_c2/native/euroc-c2s1-interface_1.0.18_i386.deb && \
+	wget http://team.suturo.de:9419/files/euroc-c2s1-simulator_1.0.27_i386.deb && \
+	wget http://team.suturo.de:9419/files/euroc-c2s1-scenes_1.0.25_i386.deb && \
+	wget http://team.suturo.de:9419/files/euroc-c2s1-interface_1.0.18_i386.deb && \
 	dpkg -i *.deb && cd .. && rm -rf download
 USER suturo
-ENV ROS_WORKSPACE /home/suturo/catkin_ws
-RUN echo "source /opt/ros/hydro/setup.bash" >> /home/suturo/.bashrc && \
+ENV ROS_WORKSPACE=/home/suturo/catkin_ws \
+	HOME=/home/suturo
+RUN echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386" >> /home/suturo/.bashrc && \
+	echo "export ROS_HOSTNAME=localhost" >> /home/suturo/.bashrc && \
+	echo "export ROS_IP=127.0.0.1" >> /home/suturo/.bashrc && \
+	echo "export EUROC_HOST_IP_ADDRESS=\$ROS_IP" >> /home/suturo/.bashrc && \
+	echo "export ROS_MASTER_URI=http://localhost:11311" >> /home/suturo/.bashrc && \
+	echo "source /opt/ros/hydro/setup.bash" >> /home/suturo/.bashrc && \
     echo "source /opt/euroc_c2s1/ros/install/setup.bash" >> /home/suturo/.bashrc && \
     echo "source $ROS_WORKSPACE/devel/setup.bash" >> /home/suturo/.bashrc && \
+    echo "source /home/suturo/.bashrc" >> /home/suturo/.bash_profile && \
     mkdir -p $ROS_WORKSPACE/src
 WORKDIR $ROS_WORKSPACE
 CMD /bin/bash
