@@ -27,6 +27,8 @@ RUN mkdir download && cd download && \
 	dpkg -i *.deb && cd .. && rm -rf download
 USER suturo
 ENV ROS_WORKSPACE=/home/suturo/catkin_ws \
+	DISPLAY=:0 \
+	QT_X11_NO_MITSHM=1 \
 	HOME=/home/suturo
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386" >> /home/suturo/.bashrc && \
 	echo "export ROS_HOSTNAME=localhost" >> /home/suturo/.bashrc && \
@@ -37,6 +39,6 @@ RUN echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386" >> /home/suturo/.ba
     echo "source /opt/euroc_c2s1/ros/install/setup.bash" >> /home/suturo/.bashrc && \
     echo "source $ROS_WORKSPACE/devel/setup.bash" >> /home/suturo/.bashrc && \
     echo "source /home/suturo/.bashrc" >> /home/suturo/.bash_profile && \
-    mkdir -p $ROS_WORKSPACE/src
+    mkdir -p $ROS_WORKSPACE/src && mkdir euroc_c2s1_logs
 WORKDIR $ROS_WORKSPACE
 CMD /bin/bash
