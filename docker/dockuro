@@ -1,0 +1,133 @@
+#!/bin/bash
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+declare -A OPTS=()
+hasargs=false
+
+for var in "$@"
+do
+    OPTS[$var]=true
+    hasargs=true
+done
+
+if ! $hasargs; then
+	OPTS["launch"]=true
+fi
+
+if [ "${OPTS["help"]}" == true ]; then
+	echo "SUTURO docker helper - Usage:"
+	echo "   ./dockuro [OPTION [OPTION [OPTION...]]]"
+	echo ""
+	echo "Valid options are:"
+	echo "  == Container options =="
+	echo "    launch - Launches a shell (and the container, if not running, default if no module build parameters are given)"
+	echo "    init - Sets up docker and downloads all images"
+	echo "    stop - Stops the container (will kill ALL of your container shells and running software inside)"
+	echo "    update - Updates the container (will remove the container and pull new images from the registry)"
+	echo ""
+	echo "  == Build options =="
+	echo "    build - Builds euroc-base and euroc-suturo-base images"
+	echo "    push - Tags and pushes euroc-base and euroc-suturo-base (only for authorized users)"
+	echo ""
+	echo "  == Misc options =="
+	echo "    help - Prints this message and exits"
+	echo "    clean - Cleans the docker environment"
+	exit
+fi
+
+if [ "${OPTS["init"]}" == true ]; then
+	echo "We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
+	sudo mkdir -p /etc/docker/certs.d/team.suturo.de:9420
+	sudo tee /etc/docker/certs.d/team.suturo.de:9420/ca.crt >/dev/null <<CA
+-----BEGIN CERTIFICATE-----
+MIIFJjCCAw4CCQDqQ5WbhRl3STANBgkqhkiG9w0BAQsFADBVMQ8wDQYDVQQLDAZT
+dXR1cm8xFzAVBgNVBAMMDnRlYW0uc3V0dXJvLmRlMRwwGgYDVQQKDBNVbml2ZXJz
+aXRhZXQgQnJlbWVuMQswCQYDVQQGEwJERTAeFw0xNTAzMjYxNjMwMzZaFw0xNzAz
+MTUxNjMwMzZaMFUxDzANBgNVBAsMBlN1dHVybzEXMBUGA1UEAwwOdGVhbS5zdXR1
+cm8uZGUxHDAaBgNVBAoME1VuaXZlcnNpdGFldCBCcmVtZW4xCzAJBgNVBAYTAkRF
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAxhceOnbbjUyKt8lt9jZX
+NBagfIfRiQLe35SLbaH2Y2MjexGU2/nguXmu+O90f17M8QEtJ6AMaxeTomUDe35u
+Akk7g8G9E5U66M3FMRXk540AEQo3Kk2dBlKNkLmonw8qC/oDheP1R95CjQYhzKm7
+bGWPzMOnXwtNgnf4iutZ/Ctqkytkv0taVWjxHebbVkDUauWK5Q78k7Hm0D4fHs9H
+p2mZzxX8jRBOxNIHD6ed3XMB9xeEFF2lMV+mSaUBB1jkrEfWaxzLwDds41bHNMcM
+ywxLgV/xaLLBLove6zfMfw23d6qycNFAIBDHQLtLoNvARr4kofZwIInF5X98xAtf
+g2tPB1S2fu4yUldH8NgH84P5ejNludtLzlQPve1MWJpOD7t4DwGCXHdtgcJUot77
+8dE8+oWZ/GYzZCKEkdElGFmPQXyGAyEdknO55EEkPSBVK/Y+eS86jmjI3ZbZU5Bg
+O9r1elFBwZPJy8KplkzRaxQF8kHDV4eCWn/YtM8hoG9euXHU7lWhG2+ZJ2lZI61o
+vNGL+M5BsymlaqGTIG8ocmjp0nzJ6DaGU7SPWPsWuP5f6OkyEeRiZ8QL11TogDoH
+fpfdIP2PPgNEk9j6SPYvBxArC9n6yZLXi3TgqPYc619UOjH5URucm0dP1u1eKA6b
+2j1YdeoVvANGJxtzUPbwT48CAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAbvJm/bUs
+2pgC3UTlXHeDECq+GjNzykJjNEYQkWjvtgyxx6rkP5UTnO7FKdoPNn9JFawJescx
+y4QjXQZbXOGQ1lPabmJc3KX2xEMOYFREYcV2Vod8lqcp2PjQuGmwR0VkuVMFJ0iL
+o7d/N3pvcf1DtSgGlZCvCUNqKPDmCc+VsRyjG1CcFEo7oS4n8+7u7H/Eh6hvfdpp
++jfgf1Y6T9rL/sDBO2zIE2ztqJeeuI/Gqqi/FzsZGw5sznysaSNWqhh9ztSBjrUo
+rSKZhIwbCb/zIYw/Kc6OGJ8U0FT9CpDVWfaVan06zTEkSlwt8fpbPPkP8cM7el+u
+ZrtU238XQcJ09bjePtJCL7rPNxQGoTD5uFKQAEGu9qzNvWGfY30BKVSbjPyODDdt
+M4Yn4R4w/pPSN5UissTIlle+83wGf75EDVgY1ZCiOxhaV6cUINeJw9wECE9OpLtd
+mC6ePk0p7qERrPW5h9M6dJGGSVk200Bx+su/CDAAyne+Dh9N/yiarTbpTatRDebw
+z6ML1RuAbXikAbg6oaOCF0IyCwR63OAHUuuGtMhMsc/fjH3MfnWHOK75hfjiS4ft
+7EN8OCECgy7Z+2dFmN3mzSUdtuJjIRwnLjJDFOXa0PfD6fzcCMXSPGKyCaqWm8OI
+QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
+-----END CERTIFICATE-----
+CA
+	if [ "`groups | grep docker`" == "" ]; then
+		echo "Adding current user to docker group (also needs root)"
+		sudo adduser `whoami` docker
+	fi
+	docker pull team.suturo.de:9420/suturo/euroc-base
+	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
+fi
+
+if [ "${OPTS["launch"]}" == true ]; then
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
+	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
+    	echo "No suturo container existing, creating a new one..."
+    	docker run --name suturo -d \
+			-e DISPLAY=$DISPLAY \
+			-e TERM=$TERM \
+			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
+			-v ~/euroc/euroc_launch:/home/suturo/catkin_ws/src/euroc_launch \
+			-v ~/euroc/euroc_manipulation:/home/suturo/catkin_ws/src/euroc_manipulation \
+			-v ~/euroc/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
+			-v ~/euroc/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
+			-v ~/euroc/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
+			--privileged team.suturo.de:9420/suturo/euroc-suturo-base \
+			bash -c 'while [ 1 -eq 1 ]; do sleep 1337; done'
+  	fi
+  	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
+    	echo "Suturo container exists, starting it..."
+    	docker start suturo
+  	fi
+  	docker exec -t -i suturo bash
+fi
+
+if [ "${OPTS["stop"]}" == true ]; then
+	docker stop -t 1 suturo
+fi
+
+if [ "${OPTS["update"]}" == true ]; then
+	docker rm -f suturo
+	docker pull team.suturo.de:9420/suturo/euroc-base
+	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
+fi
+
+function build() {
+	$DIR/$1/build
+}
+
+if [ "${OPTS["build"]}" == true ]; then
+	build euroc-base
+	build euroc-suturo-base
+fi
+
+if [ "${OPTS["push"]}" == true ]; then
+	docker tag -f suturo/euroc-base team.suturo.de:9420/suturo/euroc-base
+	docker tag -f suturo/euroc-suturo-base team.suturo.de:9420/suturo/euroc-suturo-base
+	docker push team.suturo.de:9420/suturo/euroc-base
+	docker push team.suturo.de:9420/suturo/euroc-suturo-base
+fi
+
+if [ "${OPTS["clean"]}" == true ]; then
+	docker rmi $(docker images -q -f dangling=true)
+fi
