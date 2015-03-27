@@ -1,24 +1,23 @@
-- git: {local-name: src/cram_core, uri: 'https://github.com/cram-code/cram_core.git', version: '17ad6c4c3c08'}
-- git: {local-name: src/cram_3rdparty, uri: 'https://github.com/phyrog/cram_3rdparty.git',version: 'update_all'}
-- git: {local-name: src/cram_highlevel, uri: 'https://github.com/cram-code/cram_highlevel.git', version: 'f22042c7fae3'}
-- git: {local-name: src/cram_gazebo, uri: 'https://github.com/cram-code/cram_gazebo.git', version: '57209a5e2433'}
-- git: {local-name: src/cram_bridge, uri: 'https://github.com/cram-code/cram_bridge.git', version: '80d89d905f84'}
-- git: {local-name: src/cram_physics, uri: 'https://github.com/cram-code/cram_physics.git', version: '1ceb882e9d86'}
-- git: {local-name: src/cram_pr2, uri: 'https://github.com/cram-code/cram_pr2.git', version: 'a371243685bd'}
+- git: {local-name: src/cram_core, uri: 'http://team.suturo.de:9419/git/cram_core.git', version: 'suturo'}
+- git: {local-name: src/cram_3rdparty, uri: 'http://team.suturo.de:9419/git/cram_3rdparty.git',version: 'update_all'}
+- git: {local-name: src/cram_highlevel, uri: 'http://team.suturo.de:9419/git/cram_highlevel.git', version: 'suturo'}
+- git: {local-name: src/cram_gazebo, uri: 'http://team.suturo.de:9419/git/cram_gazebo.git', version: '57209a5e2433'}
+- git: {local-name: src/cram_bridge, uri: 'http://team.suturo.de:9419/git/cram_bridge.git', version: '80d89d905f84'}
+- git: {local-name: src/cram_physics, uri: 'http://team.suturo.de:9419/git/cram_physics.git', version: '1ceb882e9d86'}
+- git: {local-name: src/cram_pr2, uri: 'http://team.suturo.de:9419/git/cram_pr2.git', version: 'a371243685bd'}
+- git: {local-name: src/stacks/knowrob, uri: 'http://team.suturo.de:9419/git/knowrob.git'} # version: 'cd422fc6af65' with github replaced with team.suturo.de
+- git: {local-name: src/rosjava_jni, uri: 'http://team.suturo.de:9419/git/rosjava_jni.git', version: '5d67596515c7'}
+
+- git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git'} # version: 'f562fbebd6ac' with github replaced with team.suturo.de
+- git: {local-name: src/designator_integration, uri: 'http://team.suturo.de:9419/git/designator_integration.git', version: '6f6559a81ade'}
+- git: {local-name: src/iai_common_msgs, uri: 'http://team.suturo.de:9419/git/iai_common_msgs.git', version: '9e73210b6b7c'}
+- git: {local-name: src/mongodb_log, uri: 'http://team.suturo.de:9419/git/ros-mongodb_log.git', version: 'bd9ee807862a'}
  
-- git: {local-name: src/stacks/knowrob, uri: 'https://github.com/knowrob/knowrob.git', version: 'cd422fc6af65'}
-- git: {local-name: src/rosjava_jni, uri: 'https://github.com/gheorghelisca/rosjava_jni.git', version: '5d67596515c7'}
+- git: {local-name: src/convex_decomposition, uri: 'http://team.suturo.de:9419/git/convex_decomposition.git', version: 'aade11331966'}
+- git: {local-name: src/ivcon, uri: 'http://team.suturo.de:9419/git/ivcon.git', version: 'd02aff32b303'}
+- git: {local-name: src/roslisp_common, uri: 'http://team.suturo.de:9419/git/roslisp_common.git', version: 'a9f8cf36549e'}
  
-- git: {local-name: src/semrec, uri: 'https://github.com/code-iai/semrec.git', version: 'f562fbebd6ac'}
-- git: {local-name: src/designator_integration, uri: 'https://github.com/code-iai/designator_integration.git', version: '6f6559a81ade'}
-- git: {local-name: src/iai_common_msgs, uri: 'https://github.com/code-iai/iai_common_msgs.git', version: '9e73210b6b7c'}
-- git: {local-name: src/mongodb_log, uri: 'https://github.com/code-iai/ros-mongodb_log.git', version: 'bd9ee807862a'}
+- git: {local-name: src/pr2_common, uri: 'http://team.suturo.de:9419/git/pr2_common.git', version: '41cb2515ebf3'}
+- git: {local-name: src/pr2_controllers, uri: 'http://team.suturo.de:9419/git/pr2_controllers.git', version: '02376d1a1899'}
  
-- git: {local-name: src/convex_decomposition, uri: 'https://github.com/ros/convex_decomposition.git', version: 'aade11331966'}
-- git: {local-name: src/ivcon, uri: 'https://github.com/ros/ivcon.git', version: 'd02aff32b303'}
-- git: {local-name: src/roslisp_common, uri: 'https://github.com/ros/roslisp_common.git', version: 'a9f8cf36549e'}
- 
-- git: {local-name: src/pr2_common, uri: 'https://github.com/PR2/pr2_common.git', version: '41cb2515ebf3'}
-- git: {local-name: src/pr2_controllers, uri: 'https://github.com/PR2/pr2_controllers.git', version: '02376d1a1899'}
- 
-- git: {local-name: src/genlisp, uri: 'https://github.com/airballking/genlisp.git', version: 'srv-generation-bug'}
+- git: {local-name: src/genlisp, uri: 'http://team.suturo.de:9419/git/genlisp.git', version: 'srv-generation-bug'}
