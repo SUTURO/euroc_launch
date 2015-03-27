@@ -79,19 +79,23 @@ CA
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
 fi
 
+if [ -z "$EUROC_BASE" ]; then
+  EUROC_BASE=~/euroc
+fi
+
 if [ "${OPTS["launch"]}" == true ]; then
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
     	echo "No suturo container existing, creating a new one..."
     	docker run --name suturo -d \
 			-e DISPLAY=$DISPLAY \
-			-e TERM=$TERM \
+			-e TERM=xterm \
 			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
-			-v ~/euroc/euroc_launch:/home/suturo/catkin_ws/src/euroc_launch \
-			-v ~/euroc/euroc_manipulation:/home/suturo/catkin_ws/src/euroc_manipulation \
-			-v ~/euroc/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
-			-v ~/euroc/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
-			-v ~/euroc/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
+			-v $EUROC_BASE/euroc_launch:/home/suturo/catkin_ws/src/euroc_launch \
+			-v $EUROC_BASE/euroc_manipulation:/home/suturo/catkin_ws/src/euroc_manipulation \
+			-v $EUROC_BASE/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
+			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
+			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
 			--privileged team.suturo.de:9420/suturo/euroc-suturo-base \
 			bash -c 'while [ 1 -eq 1 ]; do sleep 1337; done'
   	fi
