@@ -5,7 +5,7 @@ MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 USER root
 
 # Install perception, manipulation
-RUN apt-get install -y libpcl-1.7-all ros-hydro-pcl-ros ros-hydro-pcl-conversions gdb build-essential python-dev python-setuptools python-numpy python-scipy libatlas-dev libatlas3gf-base python-pip ros-hydro-sklearn python-sklearn \
+RUN apt-get update && apt-get install -y libpcl-1.7-all ros-hydro-pcl-ros ros-hydro-pcl-conversions gdb build-essential python-dev python-setuptools python-numpy python-scipy libatlas-dev libatlas3gf-base python-pip ros-hydro-sklearn python-sklearn \
 	libconfig++8-dev autoconf python-rrdtool ros-hydro-roslisp-repl && \
 	apt-get clean && \
 	pip install tabulate pymongo && \
