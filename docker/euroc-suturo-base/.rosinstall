@@ -5,11 +5,10 @@
 - git: {local-name: src/cram_bridge, uri: 'http://team.suturo.de:9419/git/cram_bridge.git', version: '80d89d905f84'}
 - git: {local-name: src/cram_physics, uri: 'http://team.suturo.de:9419/git/cram_physics.git', version: '1ceb882e9d86'}
 - git: {local-name: src/cram_pr2, uri: 'http://team.suturo.de:9419/git/cram_pr2.git', version: 'a371243685bd'}
- 
-- git: {local-name: src/stacks/knowrob, uri: 'http://team.suturo.de:9419/git/knowrob.git', version: 'cd422fc6af65'}
+- git: {local-name: src/stacks/knowrob, uri: 'http://team.suturo.de:9419/git/knowrob.git'} # version: 'cd422fc6af65' with github replaced with team.suturo.de
 - git: {local-name: src/rosjava_jni, uri: 'http://team.suturo.de:9419/git/rosjava_jni.git', version: '5d67596515c7'}
- 
-- git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git', version: 'f562fbebd6ac'}
+
+- git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git'} # version: 'f562fbebd6ac' with github replaced with team.suturo.de
 - git: {local-name: src/designator_integration, uri: 'http://team.suturo.de:9419/git/designator_integration.git', version: '6f6559a81ade'}
 - git: {local-name: src/iai_common_msgs, uri: 'http://team.suturo.de:9419/git/iai_common_msgs.git', version: '9e73210b6b7c'}
 - git: {local-name: src/mongodb_log, uri: 'http://team.suturo.de:9419/git/ros-mongodb_log.git', version: 'bd9ee807862a'}
