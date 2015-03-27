@@ -27,7 +27,6 @@ RUN mkdir download && cd download && \
 	dpkg -i *.deb && cd .. && rm -rf download
 USER suturo
 ENV ROS_WORKSPACE=/home/suturo/catkin_ws \
-	DISPLAY=:0 \
 	QT_X11_NO_MITSHM=1 \
 	HOME=/home/suturo
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386" >> /home/suturo/.bashrc && \
