@@ -72,8 +72,8 @@ QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
 -----END CERTIFICATE-----
 CA
 	if [ "`groups | grep docker`" == "" ]; then
-		echo "Adding current user to docker group (also needs root)"
-		sudo adduser `whoami` docker
+		echo "Error! Please add your user to docker group and log out and back in."
+		exit
 	fi
 	docker pull team.suturo.de:9420/suturo/euroc-base
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
