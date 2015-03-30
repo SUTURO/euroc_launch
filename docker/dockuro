@@ -2,13 +2,14 @@
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+# Commandline option handling
 declare -A OPTS=()
 hasargs=false
 
 for var in "$@"
 do
-    OPTS[$var]=true
-    hasargs=true
+	OPTS[$var]=true
+	hasargs=true
 done
 
 if ! $hasargs; then
@@ -29,12 +30,37 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "  == Build options =="
 	echo "    build - Builds euroc-base and euroc-suturo-base images"
 	echo "    push - Tags and pushes euroc-base and euroc-suturo-base (only for authorized users)"
+	echo "    nocache - Prevents docker from using cached images"
 	echo ""
 	echo "  == Misc options =="
 	echo "    help - Prints this message and exits"
 	echo "    clean - Cleans the docker environment"
+	echo "Possible environment options:"
+	echo "  EUROC_BASE - Path to the folder containing all EuRoC repositories (euroc_perception, euroc_planning, ...), defaults to ~/euroc"
+	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image"
+	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command"
+	echo "  EUROC_SHELL - Shell that is executed on dockuro launch"
 	exit
 fi
+
+function build() {
+	echo "Building $2 from $DIR/$1"
+	if [ "${OPTS["nocache"]}" == true ]; then
+		_NOCACHE="--no-cache"
+	else
+		_NOCACHE=""
+	fi
+	cd $DIR/$1 && docker build $_NOCACHE -t $2 .
+}
+
+function update() {
+	docker pull team.suturo.de:9420/suturo/euroc-base
+	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
+	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
+	if [ "$EUROC_CUSTOM_CONT" == true ] && [ "$EXISTING" != "" ]; then
+		docker rmi suturo/euroc-suturo-custom
+	fi
+}
 
 if [ "${OPTS["init"]}" == true ]; then
 	echo "We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
@@ -72,18 +98,32 @@ QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
 -----END CERTIFICATE-----
 CA
 	if [ "`groups | grep docker`" == "" ]; then
-		echo "Error! Please add your user to docker group and log out and back in."
+		echo "Error! Please add your user to the docker group and log out and back in."
 		exit
 	fi
-	docker pull team.suturo.de:9420/suturo/euroc-base
-	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
-fi
-
-if [ -z "$EUROC_BASE" ]; then
-  EUROC_BASE=~/euroc
+	update
 fi
 
 if [ "${OPTS["launch"]}" == true ]; then
+	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
+	if [ "$EUROC_CUSTOM_CONT" == true ]; then
+		EUROC_IMAGE=suturo/euroc-suturo-custom
+		if [ "$EXISTING" == "" ]; then
+			echo "Building custom container..."
+			build euroc-suturo-custom $EUROC_IMAGE
+		fi
+	else
+		EUROC_IMAGE=team.suturo.de:9420/suturo/euroc-suturo-base
+	fi
+
+	if [ -z "$EUROC_BASE" ]; then
+		EUROC_BASE=~/euroc
+	fi
+
+	if [ -z "$EUROC_SHELL" ]; then
+		EUROC_SHELL=bash
+	fi
+
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
     	echo "No suturo container existing, creating a new one..."
@@ -96,14 +136,14 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-v $EUROC_BASE/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
 			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
 			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
-			--privileged team.suturo.de:9420/suturo/euroc-suturo-base \
+			--privileged $EUROC_DOCKER_RUN_OPTS $EUROC_IMAGE \
 			bash -c 'while [ 1 -eq 1 ]; do sleep 1337; done'
-  	fi
-  	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
-    	echo "Suturo container exists, starting it..."
-    	docker start suturo
-  	fi
-  	docker exec -t -i suturo bash
+	fi
+	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
+		echo "Suturo container exists, starting it..."
+		docker start suturo
+	fi
+	docker exec -t -i suturo $EUROC_SHELL
 fi
 
 if [ "${OPTS["stop"]}" == true ]; then
@@ -112,22 +152,15 @@ fi
 
 if [ "${OPTS["update"]}" == true ]; then
 	docker rm -f suturo
-	docker pull team.suturo.de:9420/suturo/euroc-base
-	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
+	update
 fi
 
-function build() {
-	$DIR/$1/build
-}
-
 if [ "${OPTS["build"]}" == true ]; then
-	build euroc-base
-	build euroc-suturo-base
+	build euroc-base team.suturo.de:9420/suturo/euroc-base
+	build euroc-suturo-base team.suturo.de:9420/suturo/euroc-suturo-base
 fi
 
 if [ "${OPTS["push"]}" == true ]; then
-	docker tag -f suturo/euroc-base team.suturo.de:9420/suturo/euroc-base
-	docker tag -f suturo/euroc-suturo-base team.suturo.de:9420/suturo/euroc-suturo-base
 	docker push team.suturo.de:9420/suturo/euroc-base
 	docker push team.suturo.de:9420/suturo/euroc-suturo-base
 fi

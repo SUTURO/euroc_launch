@@ -4,7 +4,7 @@ MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
 # base tools and graphics drivers
 RUN apt-get update && \
-	apt-get install -y ca-certificates wget sudo apt-utils mesa-utils xserver-xorg-video-all && \
+	apt-get install -y ca-certificates wget sudo zsh apt-utils mesa-utils xserver-xorg-video-all-lts-trusty && \
 	apt-get clean
 
 # ros hydro + euroc deps
@@ -18,6 +18,7 @@ RUN	sh -c '. /etc/lsb-release && \
 # Add user suturo
 RUN adduser --disabled-password --shell /bin/bash --gecos '' suturo && \
 	adduser suturo sudo && \
+	adduser suturo video && \
 	echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 WORKDIR /home/suturo
 RUN mkdir download && cd download && \

@@ -1,8 +1,0 @@
-#!/bin/sh
-mkdir -p repositories/euroc_launch repositories/euroc_manipulation repositories/euroc_perception repositories/euroc_msgs repositories/euroc_planning
-sudo bash -c "mount -o bind ~/euroc/euroc_launch repositories/euroc_launch && \
-	mount -o bind ~/euroc/euroc_manipulation repositories/euroc_manipulation && \
-	mount -o bind ~/euroc/euroc_perception repositories/euroc_perception && \
-	mount -o bind ~/euroc/euroc_msgs repositories/euroc_msgs && \
-	mount -o bind ~/euroc/euroc_planning repositories/euroc_planning"
-docker build -t suturo/euroc-suturo .

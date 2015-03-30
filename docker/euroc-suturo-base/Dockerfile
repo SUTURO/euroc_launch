@@ -1,4 +1,4 @@
-FROM suturo/euroc-base
+FROM team.suturo.de:9420/suturo/euroc-base
 
 MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
