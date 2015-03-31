@@ -153,7 +153,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 			$EUROC_DOCKER_RUN_OPTS \
 			--volumes-from suturo_mongodata \
 			--privileged $EUROC_IMAGE \
-			bash -c 'sudo mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
+			bash -c 'sudo rm -f /data/db/mongod.lock; sudo mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "Suturo container exists, starting it..."
