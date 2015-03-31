@@ -130,10 +130,10 @@ if [ "${OPTS["launch"]}" == true ]; then
 		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
 	fi
 
-	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_mongodata 2>/dev/null)
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_data 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
-		echo "No suturo mongodata container existing, creating a new one..."
-		docker run --name suturo_mongodata -v /data/db busybox true
+		echo "No suturo data container existing, creating a new one..."
+		docker run --name suturo_data team.suturo.de:9420/suturo/data true
 	fi
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
@@ -152,9 +152,9 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-v $EUROC_BASE/sr_experimental_data:/home/suturo/sr_experimental_data \
 			$BASHRC_MOUNT \
 			$EUROC_DOCKER_RUN_OPTS \
-			--volumes-from suturo_mongodata \
+			--volumes-from suturo_data \
 			--privileged $EUROC_IMAGE \
-			bash -c 'sudo rm -f /data/db/mongod.lock; sudo mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
+			bash -c 'rm -f /data/db/mongod.lock; mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "Suturo container exists, starting it..."
@@ -177,6 +177,7 @@ if [ "${OPTS["update"]}" == true ]; then
 fi
 
 if [ "${OPTS["build"]}" == true ]; then
+	build data team.suturo.de:9420/suturo/data
 	build euroc-base team.suturo.de:9420/suturo/euroc-base
 	build euroc-suturo-base team.suturo.de:9420/suturo/euroc-suturo-base
 fi
