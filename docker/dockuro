@@ -56,6 +56,7 @@ function build() {
 }
 
 function update() {
+	docker pull team.suturo.de:9420/suturo/data
 	docker pull team.suturo.de:9420/suturo/euroc-base
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
 	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
