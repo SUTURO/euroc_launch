@@ -122,9 +122,19 @@ if [ "${OPTS["launch"]}" == true ]; then
 		EUROC_BASE=~/euroc
 	fi
 
-	if [ -z "$EUROC_SHELL" ]; then
-		EUROC_SHELL=bash
+	#if [ -z "$EUROC_SHELL" ]; then
+	#	EUROC_SHELL=bash
+	#fi
+	if [ "$EUROC_SHELL" == "zsh" ]; then 
+		echo "zsh" > /home/$USER/.docker_zsh
+		if grep "/home/$USER/.docker_zsh" /home/$USER/.zshrc; then
+			echo "Needed Stuff already in zshrc..."
+		else
+			echo "export EUROC_CUSTOM_BASHRC=\"/home/$USER/.docker_zsh\"" >> /home/$USER/.zshrc
+			source /home/$USER/.zshrc
+		fi
 	fi
+	EUROC_SHELL=bash
 
 	if [ -n "$EUROC_CUSTOM_BASHRC" ]; then
 		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
