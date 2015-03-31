@@ -25,6 +25,7 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "    launch - Launches a shell (and the container, if not running, default if no module build parameters are given)"
 	echo "    init - Sets up docker and downloads all images"
 	echo "    stop - Stops the container (will kill ALL of your container shells and running software inside)"
+	echo "    remove - Removes the container"
 	echo "    update - Updates the container (will remove the container and pull new images from the registry)"
 	echo ""
 	echo "  == Build options =="
@@ -36,10 +37,10 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "    help - Prints this message and exits"
 	echo "    clean - Cleans the docker environment"
 	echo "Possible environment options:"
-	echo "  EUROC_BASE - Path to the folder containing all EuRoC repositories (euroc_perception, euroc_planning, ...), defaults to ~/euroc"
-	echo "  EUROC_CUSTOM_BASHRC - File on the host which will be sourced in the dockuro .bashrc"
-	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image"
-	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command"
+	echo "  EUROC_BASE - Path to the folder containing all EuRoC repositories (euroc_perception, euroc_planning, ...), defaults to ~/euroc [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_CUSTOM_BASHRC - File on the host which will be sourced in the dockuro .bashrc [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command [CHANGE NEEDS CONTAINER REMOVAL]"
 	echo "  EUROC_SHELL - Shell that is executed on dockuro launch, default is bash"
 	exit
 fi
@@ -164,6 +165,10 @@ fi
 
 if [ "${OPTS["stop"]}" == true ]; then
 	docker stop -t 1 suturo
+fi
+
+if [ "${OPTS["remove"]}" == true ]; then
+	docker rm -f suturo
 fi
 
 if [ "${OPTS["update"]}" == true ]; then
