@@ -137,7 +137,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
 			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
 			--privileged $EUROC_DOCKER_RUN_OPTS $EUROC_IMAGE \
-			bash -c 'while [ 1 -eq 1 ]; do sleep 1337; done'
+			bash -c 'sudo mongod'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "Suturo container exists, starting it..."
