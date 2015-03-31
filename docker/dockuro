@@ -193,6 +193,7 @@ if [ "${OPTS["build"]}" == true ]; then
 fi
 
 if [ "${OPTS["push"]}" == true ]; then
+	docker push team.suturo.de:9420/suturo/data
 	docker push team.suturo.de:9420/suturo/euroc-base
 	docker push team.suturo.de:9420/suturo/euroc-suturo-base
 fi
