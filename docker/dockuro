@@ -37,9 +37,10 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "    clean - Cleans the docker environment"
 	echo "Possible environment options:"
 	echo "  EUROC_BASE - Path to the folder containing all EuRoC repositories (euroc_perception, euroc_planning, ...), defaults to ~/euroc"
+	echo "  EUROC_CUSTOM_BASHRC - File on the host which will be sourced in the dockuro .bashrc"
 	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image"
 	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command"
-	echo "  EUROC_SHELL - Shell that is executed on dockuro launch"
+	echo "  EUROC_SHELL - Shell that is executed on dockuro launch, default is bash"
 	exit
 fi
 
@@ -57,7 +58,7 @@ function update() {
 	docker pull team.suturo.de:9420/suturo/euroc-base
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
 	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
-	if [ "$EUROC_CUSTOM_CONT" == true ] && [ "$EXISTING" != "" ]; then
+	if [ "$EUROC_CUSTOM_CONT" == true ] && [ -n "$EXISTING" ]; then
 		docker rmi suturo/euroc-suturo-custom
 	fi
 }
@@ -97,7 +98,7 @@ z6ML1RuAbXikAbg6oaOCF0IyCwR63OAHUuuGtMhMsc/fjH3MfnWHOK75hfjiS4ft
 QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
 -----END CERTIFICATE-----
 CA
-	if [ "`groups | grep docker`" == "" ]; then
+	if [ -z "`groups | grep docker`" ]; then
 		echo "Error! Please add your user to the docker group and log out and back in."
 		exit
 	fi
@@ -108,7 +109,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
 	if [ "$EUROC_CUSTOM_CONT" == true ]; then
 		EUROC_IMAGE=suturo/euroc-suturo-custom
-		if [ "$EXISTING" == "" ]; then
+		if [ -z "$EXISTING" ]; then
 			echo "Building custom container..."
 			build euroc-suturo-custom $EUROC_IMAGE
 		fi
@@ -124,10 +125,19 @@ if [ "${OPTS["launch"]}" == true ]; then
 		EUROC_SHELL=bash
 	fi
 
+	if [ -n "$EUROC_CUSTOM_BASHRC" ]; then
+		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
+	fi
+
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_mongodata 2>/dev/null)
+	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
+		echo "No suturo mongodata container existing, creating a new one..."
+		docker run --name suturo_mongodata -v /data/db busybox true
+	fi
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
-    	echo "No suturo container existing, creating a new one..."
-    	docker run --name suturo -d \
+		echo "No suturo container existing, creating a new one..."
+		docker run --name suturo -d \
 			-e DISPLAY=$DISPLAY \
 			-e TERM=xterm \
 			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
@@ -136,8 +146,14 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-v $EUROC_BASE/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
 			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
 			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
-			--privileged $EUROC_DOCKER_RUN_OPTS $EUROC_IMAGE \
-			bash -c 'sudo mongod'
+			-v $EUROC_BASE/euroc_ml:/home/suturo/catkin_ws/src/euroc_ml \
+			-v $EUROC_BASE/euroc_video:/home/suturo/catkin_ws/src/euroc_video \
+			-v $EUROC_BASE/sr_experimental_data:/home/suturo/sr_experimental_data \
+			$BASHRC_MOUNT \
+			$EUROC_DOCKER_RUN_OPTS \
+			--volumes-from suturo_mongodata \
+			--privileged $EUROC_IMAGE \
+			bash -c 'sudo mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "Suturo container exists, starting it..."
