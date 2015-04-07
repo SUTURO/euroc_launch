@@ -1,0 +1,206 @@
+#!/bin/bash
+
+DIR=$( cd "$( readlink -f "${BASH_SOURCE[0]}" | xargs dirname )" && pwd )
+
+# Commandline option handling
+declare -A OPTS=()
+hasargs=false
+
+for var in "$@"
+do
+	OPTS[$var]=true
+	hasargs=true
+done
+
+if ! $hasargs; then
+	OPTS["launch"]=true
+fi
+
+if [ "${OPTS["help"]}" == true ]; then
+	echo "SUTURO docker helper - Usage:"
+	echo "   ./dockuro [OPTION [OPTION [OPTION...]]]"
+	echo ""
+	echo "Valid options are:"
+	echo "  == Container options =="
+	echo "    launch - Launches a shell (and the container, if not running, default if no module build parameters are given)"
+	echo "    init - Sets up docker and downloads all images"
+	echo "    stop - Stops the container (will kill ALL of your container shells and running software inside)"
+	echo "    remove - Removes the container"
+	echo "    update - Updates the container (will remove the container and pull new images from the registry)"
+	echo ""
+	echo "  == Build options =="
+	echo "    build - Builds euroc-base and euroc-suturo-base images"
+	echo "    push - Tags and pushes euroc-base and euroc-suturo-base (only for authorized users)"
+	echo "    nocache - Prevents docker from using cached images"
+	echo ""
+	echo "  == Misc options =="
+	echo "    help - Prints this message and exits"
+	echo "    clean - Cleans the docker environment"
+	echo "Possible environment options:"
+	echo "  EUROC_BASE - Path to the folder containing all EuRoC repositories (euroc_perception, euroc_planning, ...), defaults to ~/euroc [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_CUSTOM_BASHRC - File on the host which will be sourced in the dockuro .bashrc [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command [CHANGE NEEDS CONTAINER REMOVAL]"
+	echo "  EUROC_SHELL - Shell that is executed on dockuro launch, default is bash"
+	exit
+fi
+
+function build() {
+	echo "Building $2 from $DIR/$1"
+	if [ "${OPTS["nocache"]}" == true ]; then
+		_NOCACHE="--no-cache"
+	else
+		_NOCACHE=""
+	fi
+	cd $DIR/$1 && docker build $_NOCACHE -t $2 .
+}
+
+function update() {
+	docker pull team.suturo.de:9420/suturo/data
+	docker pull team.suturo.de:9420/suturo/euroc-base
+	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
+	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
+	if [ "$EUROC_CUSTOM_CONT" == true ] && [ -n "$EXISTING" ]; then
+		docker rmi suturo/euroc-suturo-custom
+	fi
+}
+
+if [ "${OPTS["init"]}" == true ]; then
+	echo "We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
+	sudo mkdir -p /etc/docker/certs.d/team.suturo.de:9420
+	sudo tee /etc/docker/certs.d/team.suturo.de:9420/ca.crt >/dev/null <<CA
+-----BEGIN CERTIFICATE-----
+MIIFJjCCAw4CCQDqQ5WbhRl3STANBgkqhkiG9w0BAQsFADBVMQ8wDQYDVQQLDAZT
+dXR1cm8xFzAVBgNVBAMMDnRlYW0uc3V0dXJvLmRlMRwwGgYDVQQKDBNVbml2ZXJz
+aXRhZXQgQnJlbWVuMQswCQYDVQQGEwJERTAeFw0xNTAzMjYxNjMwMzZaFw0xNzAz
+MTUxNjMwMzZaMFUxDzANBgNVBAsMBlN1dHVybzEXMBUGA1UEAwwOdGVhbS5zdXR1
+cm8uZGUxHDAaBgNVBAoME1VuaXZlcnNpdGFldCBCcmVtZW4xCzAJBgNVBAYTAkRF
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAxhceOnbbjUyKt8lt9jZX
+NBagfIfRiQLe35SLbaH2Y2MjexGU2/nguXmu+O90f17M8QEtJ6AMaxeTomUDe35u
+Akk7g8G9E5U66M3FMRXk540AEQo3Kk2dBlKNkLmonw8qC/oDheP1R95CjQYhzKm7
+bGWPzMOnXwtNgnf4iutZ/Ctqkytkv0taVWjxHebbVkDUauWK5Q78k7Hm0D4fHs9H
+p2mZzxX8jRBOxNIHD6ed3XMB9xeEFF2lMV+mSaUBB1jkrEfWaxzLwDds41bHNMcM
+ywxLgV/xaLLBLove6zfMfw23d6qycNFAIBDHQLtLoNvARr4kofZwIInF5X98xAtf
+g2tPB1S2fu4yUldH8NgH84P5ejNludtLzlQPve1MWJpOD7t4DwGCXHdtgcJUot77
+8dE8+oWZ/GYzZCKEkdElGFmPQXyGAyEdknO55EEkPSBVK/Y+eS86jmjI3ZbZU5Bg
+O9r1elFBwZPJy8KplkzRaxQF8kHDV4eCWn/YtM8hoG9euXHU7lWhG2+ZJ2lZI61o
+vNGL+M5BsymlaqGTIG8ocmjp0nzJ6DaGU7SPWPsWuP5f6OkyEeRiZ8QL11TogDoH
+fpfdIP2PPgNEk9j6SPYvBxArC9n6yZLXi3TgqPYc619UOjH5URucm0dP1u1eKA6b
+2j1YdeoVvANGJxtzUPbwT48CAwEAATANBgkqhkiG9w0BAQsFAAOCAgEAbvJm/bUs
+2pgC3UTlXHeDECq+GjNzykJjNEYQkWjvtgyxx6rkP5UTnO7FKdoPNn9JFawJescx
+y4QjXQZbXOGQ1lPabmJc3KX2xEMOYFREYcV2Vod8lqcp2PjQuGmwR0VkuVMFJ0iL
+o7d/N3pvcf1DtSgGlZCvCUNqKPDmCc+VsRyjG1CcFEo7oS4n8+7u7H/Eh6hvfdpp
++jfgf1Y6T9rL/sDBO2zIE2ztqJeeuI/Gqqi/FzsZGw5sznysaSNWqhh9ztSBjrUo
+rSKZhIwbCb/zIYw/Kc6OGJ8U0FT9CpDVWfaVan06zTEkSlwt8fpbPPkP8cM7el+u
+ZrtU238XQcJ09bjePtJCL7rPNxQGoTD5uFKQAEGu9qzNvWGfY30BKVSbjPyODDdt
+M4Yn4R4w/pPSN5UissTIlle+83wGf75EDVgY1ZCiOxhaV6cUINeJw9wECE9OpLtd
+mC6ePk0p7qERrPW5h9M6dJGGSVk200Bx+su/CDAAyne+Dh9N/yiarTbpTatRDebw
+z6ML1RuAbXikAbg6oaOCF0IyCwR63OAHUuuGtMhMsc/fjH3MfnWHOK75hfjiS4ft
+7EN8OCECgy7Z+2dFmN3mzSUdtuJjIRwnLjJDFOXa0PfD6fzcCMXSPGKyCaqWm8OI
+QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
+-----END CERTIFICATE-----
+CA
+	if [ -z "`groups | grep docker`" ]; then
+		echo "Error! Please add your user to the docker group and log out and back in."
+		exit
+	fi
+	update
+fi
+
+if [ "${OPTS["launch"]}" == true ]; then
+	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
+	if [ "$EUROC_CUSTOM_CONT" == true ]; then
+		EUROC_IMAGE=suturo/euroc-suturo-custom
+		if [ -z "$EXISTING" ]; then
+			echo "Building custom container..."
+			build euroc-suturo-custom $EUROC_IMAGE
+		fi
+	else
+		EUROC_IMAGE=team.suturo.de:9420/suturo/euroc-suturo-base
+	fi
+
+	if [ -z "$EUROC_BASE" ]; then
+		EUROC_BASE=~/euroc
+	fi
+
+	if [ "$EUROC_SHELL" == "zsh" ]; then 
+		echo "zsh" > /home/$USER/.docker_zsh
+		if grep "/home/$USER/.docker_zsh" /home/$USER/.zshrc; then
+			echo "Needed Stuff already in zshrc..."
+		else
+			echo "export EUROC_CUSTOM_BASHRC=\"/home/$USER/.docker_zsh\"" >> /home/$USER/.zshrc
+			source /home/$USER/.zshrc
+		fi
+		EUROC_SHELL=bash
+	fi
+
+	if [ -z "$EUROC_SHELL" ]; then
+               EUROC_SHELL=bash
+        fi
+
+
+	if [ -n "$EUROC_CUSTOM_BASHRC" ]; then
+		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
+	fi
+
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_data 2>/dev/null)
+	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
+		echo "No suturo data container existing, creating a new one..."
+		docker run --name suturo_data team.suturo.de:9420/suturo/data true
+	fi
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
+	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
+		echo "No suturo container existing, creating a new one..."
+		docker run --name suturo -d \
+			-e DISPLAY=$DISPLAY \
+			-e TERM=xterm \
+			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
+			-v $EUROC_BASE/euroc_launch:/home/suturo/catkin_ws/src/euroc_launch \
+			-v $EUROC_BASE/euroc_manipulation:/home/suturo/catkin_ws/src/euroc_manipulation \
+			-v $EUROC_BASE/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
+			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
+			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
+			-v $EUROC_BASE/euroc_ml:/home/suturo/catkin_ws/src/euroc_ml \
+			-v $EUROC_BASE/euroc_video:/home/suturo/catkin_ws/src/euroc_video \
+			-v $EUROC_BASE/sr_experimental_data:/home/suturo/sr_experimental_data \
+			$BASHRC_MOUNT \
+			$EUROC_DOCKER_RUN_OPTS \
+			--volumes-from suturo_data \
+			--privileged $EUROC_IMAGE \
+			bash -c 'rm -f /data/db/mongod.lock; mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
+	fi
+	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
+		echo "Suturo container exists, starting it..."
+		docker start suturo
+	fi
+	docker exec -t -i suturo $EUROC_SHELL
+fi
+
+if [ "${OPTS["stop"]}" == true ]; then
+	docker stop -t 1 suturo
+fi
+
+if [ "${OPTS["remove"]}" == true ]; then
+	docker rm -f suturo
+fi
+
+if [ "${OPTS["update"]}" == true ]; then
+	docker rm -f suturo
+	update
+fi
+
+if [ "${OPTS["build"]}" == true ]; then
+	build data team.suturo.de:9420/suturo/data
+	build euroc-base team.suturo.de:9420/suturo/euroc-base
+	build euroc-suturo-base team.suturo.de:9420/suturo/euroc-suturo-base
+fi
+
+if [ "${OPTS["push"]}" == true ]; then
+	docker push team.suturo.de:9420/suturo/data
+	docker push team.suturo.de:9420/suturo/euroc-base
+	docker push team.suturo.de:9420/suturo/euroc-suturo-base
+fi
+
+if [ "${OPTS["clean"]}" == true ]; then
+	docker rmi $(docker images -q -f dangling=true)
+fi

@@ -102,21 +102,16 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 ## Declare a cpp executable
 # add_executable(euroc_launch_node src/euroc_launch_node.cpp)
 add_executable(TaskSelector src/TaskSelector.cpp)
-# breaks catkin_make
-#add_executable(TestNode src/TestNode.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(euroc_launch_node euroc_launch_generate_messages_cpp)
-#add_dependencies(TestNode ${catkin_EXPORTED_TARGETS} #suturo_msgs_generate_messages_cpp)
-
+add_dependencies(${catkin_EXPORTED_TARGETS} suturo_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(euroc_launch_node
 #   ${catkin_LIBRARIES}
 # )
-# breaks catkin_make
-#target_link_libraries(TestNode ${catkin_LIBRARIES} ${PROJECT_SOURCE_DIR}/#integrationtest/libgztest.a ${PROJECT_SOURCE_DIR}/integrationtest/libjsonrpc.a -lcurl)
 
 #############
 ## Install ##

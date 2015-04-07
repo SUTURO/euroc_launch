@@ -1,4 +1,5 @@
 <launch>
+	<param name="use_sim_time" type="bool" value="True"/>
 
 	<include file="$(find suturo_manipulation_moveit)/launch/tf.launch"/>
 
@@ -9,6 +10,8 @@
 	<node name="gripper_controller" pkg="suturo_manipulation_moveit" type="gripper_controller" respawn="true" output="screen"/>
 
 	<node name="base_controller" pkg="suturo_manipulation_moveit" type="base_controller" respawn="true" output="screen"/>
+
+    <node name="manipulation_controller" pkg="suturo_planning_manipulation" type="manipulation_node.py" respawn="true" output="screen" />
 
 	<include file="$(find suturo_manipulation_moveit)/launch/move_group.launch">
 
