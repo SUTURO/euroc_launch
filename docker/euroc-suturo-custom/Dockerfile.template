@@ -1,0 +1,27 @@
+##############################################################################################
+#          Custom Dockerfile for permanent adjustments to euroc-suturo-base image.           #
+# Rename this file to Dockerfile, then export EUROC_CUSTOM_CONT=true before running dockuro! #
+# Remember to run dockuro remove everytime you change this file!                             #
+##############################################################################################
+FROM team.suturo.de:9420/suturo/euroc-suturo-base
+
+MAINTAINER Moritz Horstmann <mhorst@tzi.de>
+
+USER root
+# Install any video drivers here, eg:
+
+#### NVIDIA (always use same version as installed on your host)
+## Automatic
+# RUN apt-get install -y nvidia-331-updates && apt-get clean
+## Manual
+# RUN apt-get install -y binutils && apt-get clean
+# ADD files/NVIDIA-DRIVER.run /tmp/NVIDIA-DRIVER.run
+# RUN sh /tmp/NVIDIA-DRIVER.run -a -N --ui=none --no-kernel-module && rm /tmp/NVIDIA-DRIVER.run
+
+#### AMD (with Catalyst 14.12 from http://support.amd.com/de-de/download/desktop?os=Ubuntu+x86+32 )
+# RUN mkdir -p /tmp/fglrx && apt-get install -y dkms && apt-get clean
+# ADD files/*.deb /tmp/fglrx/
+# RUN dpkg -i /tmp/fglrx/* && rm -rf /tmp/fglrx && amdconfig --initial
+## For switchable GPUs add " && amdconfig --px-dgpu" to the last line to choose the discrete gpu
+
+USER suturo

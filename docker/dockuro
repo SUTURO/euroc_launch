@@ -45,8 +45,15 @@ if [ "${OPTS["help"]}" == true ]; then
 	exit
 fi
 
+function removeCustom() {
+	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
+	if [ -n "$EXISTING" ]; then
+		docker rmi suturo/euroc-suturo-custom
+	fi
+}
+
 function build() {
-	echo "Building $2 from $DIR/$1"
+	echo "[Dockuro] Building $2 from $DIR/$1"
 	if [ "${OPTS["nocache"]}" == true ]; then
 		_NOCACHE="--no-cache"
 	else
@@ -57,16 +64,28 @@ function build() {
 
 function update() {
 	docker pull team.suturo.de:9420/suturo/data
-	docker pull team.suturo.de:9420/suturo/euroc-base
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
-	EXISTING=$(docker images | grep suturo/euroc-suturo-custom)
-	if [ "$EUROC_CUSTOM_CONT" == true ] && [ -n "$EXISTING" ]; then
-		docker rmi suturo/euroc-suturo-custom
+	CONTNEEDSUPDATE=false
+	BASE_IMAGE=$(docker inspect -f "{{ .Id }}" team.suturo.de:9420/suturo/euroc-suturo-base)
+	IMAGE=$(docker inspect -f "{{ .Image }}" suturo 2>/dev/null)
+	if [ $? == 0 ]; then
+		while [ "$BASE_IMAGE" != "$IMAGE" ]; do
+			IMAGE=$(docker inspect -f "{{ .Parent }}" $IMAGE 2>/dev/null)
+			if [ -z "$IMAGE" ]; then
+				CONTNEEDSUPDATE=true
+				break
+			fi
+		done
 	fi
+	if $CONTNEEDSUPDATE; then
+		removeCustom
+		return 1
+	fi
+	return 0
 }
 
 if [ "${OPTS["init"]}" == true ]; then
-	echo "We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
+	echo "[Dockuro] We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
 	sudo mkdir -p /etc/docker/certs.d/team.suturo.de:9420
 	sudo tee /etc/docker/certs.d/team.suturo.de:9420/ca.crt >/dev/null <<CA
 -----BEGIN CERTIFICATE-----
@@ -101,7 +120,7 @@ QJw6sdAA7Ks8WgaemuQnsTIy8jRudsAsgSM=
 -----END CERTIFICATE-----
 CA
 	if [ -z "`groups | grep docker`" ]; then
-		echo "Error! Please add your user to the docker group and log out and back in."
+		echo "[Dockuro] Error! Please add your user to the docker group and log out and back in."
 		exit
 	fi
 	update
@@ -112,8 +131,9 @@ if [ "${OPTS["launch"]}" == true ]; then
 	if [ "$EUROC_CUSTOM_CONT" == true ]; then
 		EUROC_IMAGE=suturo/euroc-suturo-custom
 		if [ -z "$EXISTING" ]; then
-			echo "Building custom container..."
+			echo "[Dockuro] Building custom container..."
 			build euroc-suturo-custom $EUROC_IMAGE
+			docker rm -f suturo 2>/dev/null
 		fi
 	else
 		EUROC_IMAGE=team.suturo.de:9420/suturo/euroc-suturo-base
@@ -126,7 +146,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 	if [ "$EUROC_SHELL" == "zsh" ]; then 
 		echo "zsh" > /home/$USER/.docker_zsh
 		if grep "/home/$USER/.docker_zsh" /home/$USER/.zshrc; then
-			echo "Needed Stuff already in zshrc..."
+			echo "[Dockuro] Needed Stuff already in zshrc..."
 		else
 			echo "export EUROC_CUSTOM_BASHRC=\"/home/$USER/.docker_zsh\"" >> /home/$USER/.zshrc
 			source /home/$USER/.zshrc
@@ -145,12 +165,12 @@ if [ "${OPTS["launch"]}" == true ]; then
 
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_data 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
-		echo "No suturo data container existing, creating a new one..."
+		echo "[Dockuro] No suturo data container existing, creating a new one..."
 		docker run --name suturo_data team.suturo.de:9420/suturo/data true
 	fi
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
-		echo "No suturo container existing, creating a new one..."
+		echo "[Dockuro] No suturo container existing, creating a new one..."
 		docker run --name suturo -d \
 			-e DISPLAY=$DISPLAY \
 			-e TERM=xterm \
@@ -170,7 +190,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 			bash -c 'rm -f /data/db/mongod.lock; mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
-		echo "Suturo container exists, starting it..."
+		echo "[Dockuro] Suturo container exists, starting it..."
 		docker start suturo
 	fi
 	docker exec -t -i suturo $EUROC_SHELL
@@ -182,11 +202,17 @@ fi
 
 if [ "${OPTS["remove"]}" == true ]; then
 	docker rm -f suturo
+	removeCustom
 fi
 
 if [ "${OPTS["update"]}" == true ]; then
-	docker rm -f suturo
 	update
+	if [ $? == 1 ]; then
+		echo "[Dockuro] Found updated version of base image! Deleting container..."
+		docker rm -f suturo
+	else
+		echo "[Dockuro] No update available."
+	fi
 fi
 
 if [ "${OPTS["build"]}" == true ]; then
@@ -202,5 +228,5 @@ if [ "${OPTS["push"]}" == true ]; then
 fi
 
 if [ "${OPTS["clean"]}" == true ]; then
-	docker rmi $(docker images -q -f dangling=true)
+	docker rmi $(docker images -q -f dangling=true) 2>/dev/null
 fi
