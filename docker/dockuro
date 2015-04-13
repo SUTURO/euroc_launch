@@ -27,7 +27,7 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "    stop - Stops the container (will kill ALL of your container shells and running software inside)"
 	echo "    remove - Removes the container"
 	echo "    mrproper - Removes the container and the data container (with mongodb data, rviz-settings, compile cache...)"
-	echo "    update - Updates the container (will remove the container and pull new images from the registry)"
+	echo "    update - Updates the container (will pull new images from the registry and remove the container if a new version is found)"
 	echo ""
 	echo "  == Build options =="
 	echo "    build - Builds euroc-base and euroc-suturo-base images"
