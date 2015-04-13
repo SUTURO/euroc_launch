@@ -26,6 +26,7 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "    init - Sets up docker and downloads all images"
 	echo "    stop - Stops the container (will kill ALL of your container shells and running software inside)"
 	echo "    remove - Removes the container"
+	echo "    mrproper - Removes the container and the data container (with mongodb data, rviz-settings, compile cache...)"
 	echo "    update - Updates the container (will remove the container and pull new images from the registry)"
 	echo ""
 	echo "  == Build options =="
@@ -202,6 +203,12 @@ fi
 
 if [ "${OPTS["remove"]}" == true ]; then
 	docker rm -f suturo
+	removeCustom
+fi
+
+if [ "${OPTS["mrproper"]}" == true ]; then
+	docker rm -f suturo
+	docker rm -f suturo_data
 	removeCustom
 fi
 
