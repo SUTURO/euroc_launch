@@ -26,10 +26,10 @@ USER root
 
 
 # Changing the UID/GID from suturo user to match UID/GID of the host user
-# RUN usermod -u <NEWUID> suturo
-# RUN groupmod -g <NEWGID> suturo
-# RUN find / -user 1000 -exec chown -h <NEWUID> {} \;
-# RUN find / -group 1000 -exec chgrp -h <NEWGID> {} \;
-# RUN usermod -g <NEWGID> suturo
+# RUN usermod -u <HOSTUID> suturo
+# RUN groupmod -g <HOSTGID> suturo
+# RUN find / -path /proc -prune -o -user 1000 -exec chown -h <HOSTUID> {} \;
+# RUN find / -path /proc -prune -o -group 1000 -exec chgrp -h <HOSTGID> {} \;
+# RUN usermod -g <HOSTGID> suturo
 
 USER suturo
