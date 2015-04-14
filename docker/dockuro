@@ -2,6 +2,10 @@
 
 DIR=$( cd "$( readlink -f "${BASH_SOURCE[0]}" | xargs dirname )" && pwd )
 
+if [ -z "$EUROC_CONTAINER_NAME" ]; then
+	EUROC_CONTAINER_NAME=suturo
+fi
+
 # Commandline option handling
 declare -A OPTS=()
 hasargs=false
@@ -43,6 +47,7 @@ if [ "${OPTS["help"]}" == true ]; then
 	echo "  EUROC_CUSTOM_CONT - If set to true, build and use a custom image based on the euroc-suturo-base image [CHANGE NEEDS CONTAINER REMOVAL]"
 	echo "  EUROC_DOCKER_RUN_OPTS - Options to be added to the docker run command [CHANGE NEEDS CONTAINER REMOVAL]"
 	echo "  EUROC_SHELL - Shell that is executed on dockuro launch, default is bash"
+	echo "  EUROC_CONTAINER_NAME - Name of the container, default is suturo"
 	exit
 fi
 
@@ -134,7 +139,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 		if [ -z "$EXISTING" ]; then
 			echo "[Dockuro] Building custom container..."
 			build euroc-suturo-custom $EUROC_IMAGE
-			docker rm -f suturo 2>/dev/null
+			docker rm -f $EUROC_CONTAINER_NAME 2>/dev/null
 		fi
 	else
 		EUROC_IMAGE=team.suturo.de:9420/suturo/euroc-suturo-base
@@ -156,23 +161,22 @@ if [ "${OPTS["launch"]}" == true ]; then
 	fi
 
 	if [ -z "$EUROC_SHELL" ]; then
-               EUROC_SHELL=bash
-        fi
-
+		EUROC_SHELL=bash
+	fi
 
 	if [ -n "$EUROC_CUSTOM_BASHRC" ]; then
 		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
 	fi
 
-	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo_data 2>/dev/null)
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" ${EUROC_CONTAINER_NAME}_data 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
 		echo "[Dockuro] No suturo data container existing, creating a new one..."
-		docker run --name suturo_data team.suturo.de:9420/suturo/data true
+		docker run --name ${EUROC_CONTAINER_NAME}_data team.suturo.de:9420/suturo/data true
 	fi
-	EXISTING=$(docker inspect --format="{{ .State.Running }}" suturo 2>/dev/null)
+	EXISTING=$(docker inspect --format="{{ .State.Running }}" $EUROC_CONTAINER_NAME 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
 		echo "[Dockuro] No suturo container existing, creating a new one..."
-		docker run --name suturo -d \
+		docker run --name $EUROC_CONTAINER_NAME -d \
 			-e DISPLAY=$DISPLAY \
 			-e TERM=xterm \
 			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
@@ -186,29 +190,29 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-v $EUROC_BASE/sr_experimental_data:/home/suturo/sr_experimental_data \
 			$BASHRC_MOUNT \
 			$EUROC_DOCKER_RUN_OPTS \
-			--volumes-from suturo_data \
+			--volumes-from ${EUROC_CONTAINER_NAME}_data \
 			--privileged $EUROC_IMAGE \
 			bash -c 'rm -f /data/db/mongod.lock; mongod; while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "[Dockuro] Suturo container exists, starting it..."
-		docker start suturo
+		docker start $EUROC_CONTAINER_NAME
 	fi
-	docker exec -t -i suturo $EUROC_SHELL
+	docker exec -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
 fi
 
 if [ "${OPTS["stop"]}" == true ]; then
-	docker stop -t 1 suturo
+	docker stop -t 1 $EUROC_CONTAINER_NAME
 fi
 
 if [ "${OPTS["remove"]}" == true ]; then
-	docker rm -f suturo
+	docker rm -f $EUROC_CONTAINER_NAME
 	removeCustom
 fi
 
 if [ "${OPTS["mrproper"]}" == true ]; then
-	docker rm -f suturo
-	docker rm -f suturo_data
+	docker rm -f $EUROC_CONTAINER_NAME
+	docker rm -f ${EUROC_CONTAINER_NAME}_data
 	removeCustom
 fi
 
@@ -216,7 +220,7 @@ if [ "${OPTS["update"]}" == true ]; then
 	update
 	if [ $? == 1 ]; then
 		echo "[Dockuro] Found updated version of base image! Deleting container..."
-		docker rm -f suturo
+		docker rm -f $EUROC_CONTAINER_NAME
 	else
 		echo "[Dockuro] No update available."
 	fi
