@@ -4,7 +4,7 @@ MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
 # base tools and graphics drivers
 RUN apt-get update && \
-	apt-get install -y ca-certificates wget sudo zsh net-tools nano vim-nox apt-utils mesa-utils xserver-xorg-video-all-lts-trusty && \
+	apt-get install -y ca-certificates wget sudo bash-completion command-not-found zsh net-tools nano vim-nox apt-utils mesa-utils xserver-xorg-video-all-lts-trusty && \
 	apt-get clean
 
 # ros hydro + euroc deps
