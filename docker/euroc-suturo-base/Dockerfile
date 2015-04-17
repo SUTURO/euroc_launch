@@ -11,6 +11,10 @@ RUN apt-get update && apt-get install -y libpcl-1.7-all ros-hydro-pcl-ros ros-hy
 	pip install tabulate pymongo && \
 	rosdep init
 
+# Install extrawurst
+RUN apt-get install -y bash-completion command-not-found tig zsh net-tools nano vim-nox && \
+	apt-get clean
+
 USER suturo
 WORKDIR /home/suturo/catkin_ws
 ADD .rosinstall ./.rosinstall

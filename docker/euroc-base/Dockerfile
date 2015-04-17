@@ -4,7 +4,7 @@ MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
 # base tools and graphics drivers
 RUN apt-get update && \
-	apt-get install -y ca-certificates wget sudo bash-completion command-not-found zsh net-tools nano vim-nox apt-utils mesa-utils xserver-xorg-video-all-lts-trusty && \
+	apt-get install -y ca-certificates wget sudo apt-utils mesa-utils xserver-xorg-video-all-lts-trusty && \
 	apt-get clean
 
 # ros hydro + euroc deps
@@ -45,6 +45,7 @@ RUN echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386" >> /home/suturo/.ba
 	echo "source /opt/euroc_c2s1/ros/install/setup.bash" >> /home/suturo/.bashrc && \
 	echo "source $ROS_WORKSPACE/devel/setup.bash" >> /home/suturo/.bashrc && \
 	echo "if [ -e /home/suturo/.custombashrc ] ; then source /home/suturo/.custombashrc; fi" >> /home/suturo/.bashrc && \
+	echo "export ROS_WORKSPACE=/home/suturo/catkin_ws" >> /home/suturo/.bashrc && \
 	echo "source /home/suturo/.bashrc" >> /home/suturo/.bash_profile && \
 	mkdir -p $ROS_WORKSPACE/src && mkdir euroc_c2s1_logs
 WORKDIR $ROS_WORKSPACE
