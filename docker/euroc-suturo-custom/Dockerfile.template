@@ -15,7 +15,7 @@ USER root
 # RUN apt-get install -y nvidia-331-updates && apt-get clean
 ## Manual
 # RUN apt-get install -y binutils && apt-get clean
-# ADD files/NVIDIA-DRIVER.run /tmp/NVIDIA-DRIVER.run
+# ADD files/NVIDIA-DRIVER.run /tmp/
 # RUN sh /tmp/NVIDIA-DRIVER.run -a -N --ui=none --no-kernel-module && rm /tmp/NVIDIA-DRIVER.run
 
 #### AMD (with Catalyst 14.12 from http://support.amd.com/de-de/download/desktop?os=Ubuntu+x86+32 )
@@ -31,5 +31,13 @@ USER root
 # RUN find / -path /proc -prune -o -user 1000 -exec chown -h <HOSTUID> {} \;
 # RUN find / -path /proc -prune -o -group 1000 -exec chgrp -h <HOSTGID> {} \;
 # RUN usermod -g <HOSTGID> suturo
+
+
+# Adding PyCharm to the container
+# ADD files/pycharm-professional-4.0.6.tar.gz /tmp/
+# RUN mv /tmp/pycharm-4.0.6 /home/suturo/pycharm && chown suturo:suturo -R /home/suturo/pycharm
+# USER suturo
+# RUN echo "alias charm='/home/suturo/pycharm/bin/pycharm.sh &>/dev/null &'" >> /home/suturo/.bashrc && \
+#     echo "persist /home/suturo/.PyCharm40 true" >> /home/suturo/custompersist.sh
 
 USER suturo

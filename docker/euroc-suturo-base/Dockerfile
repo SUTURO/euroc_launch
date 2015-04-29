@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y bash-completion command-not-found tig z
  	update-alternatives --set java "/usr/lib/jvm/java-1.7.0-openjdk-i386/jre/bin/java" && \
  	update-alternatives --set javac "/usr/lib/jvm/java-1.7.0-openjdk-i386/bin/javac" && \
  	echo "export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386" >> /home/suturo/.bashrc && \
- 	echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386/server:/usr/lib/swi-prolog/lib/i386" >> /home/suturo/.bashrc && \
+ 	echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386/server:/usr/lib/swi-prolog/lib/i386" >> /home/suturo/.bashrc && \
 	apt-get clean
 
 ADD persistent.sh /home/suturo/persistent.sh
