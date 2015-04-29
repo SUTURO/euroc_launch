@@ -68,6 +68,17 @@ function build() {
 	cd $DIR/$1 && docker build $_NOCACHE -t $2 .
 }
 
+function migrate() {
+	DATA=$(docker inspect -f "{{ .Volumes }}" ${EUROC_CONTAINER_NAME}_data 2>/dev/null)
+	if [ $? == 0 ]; then
+		OLDDATA=$(echo $DATA | grep /persistent)
+		if [ -z "$OLDDATA" ]; then
+			echo "[Dockuro] Found old data container. Removing..."
+			docker rm ${EUROC_CONTAINER_NAME}_data
+		fi
+	fi
+}
+
 function update() {
 	docker pull team.suturo.de:9420/suturo/data
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
@@ -224,6 +235,7 @@ if [ "${OPTS["update"]}" == true ]; then
 	else
 		echo "[Dockuro] No update available."
 	fi
+	migrate
 fi
 
 if [ "${OPTS["build"]}" == true ]; then
