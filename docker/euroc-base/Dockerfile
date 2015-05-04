@@ -43,8 +43,9 @@ RUN echo "export ROS_HOSTNAME=localhost" >> /home/suturo/.bashrc && \
 	echo "source /opt/ros/hydro/setup.bash" >> /home/suturo/.bashrc && \
 	echo "source /opt/euroc_c2s1/ros/install/setup.bash" >> /home/suturo/.bashrc && \
 	echo "source $ROS_WORKSPACE/devel/setup.bash" >> /home/suturo/.bashrc && \
-	echo "if [ -e /home/suturo/.custombashrc ] ; then source /home/suturo/.custombashrc; fi" >> /home/suturo/.bashrc && \
 	echo "export ROS_WORKSPACE=/home/suturo/catkin_ws" >> /home/suturo/.bashrc && \
+	echo "if [ -e /home/suturo/persistent.sh ] ; then source /home/suturo/persistent.sh; fi" >> /home/suturo/.bashrc && \
+	echo "if [ -e /home/suturo/.custombashrc ] ; then source /home/suturo/.custombashrc; fi" >> /home/suturo/.bashrc && \
 	echo "source /home/suturo/.bashrc" >> /home/suturo/.bash_profile && \
 	mkdir -p $ROS_WORKSPACE/src && mkdir euroc_c2s1_logs
 WORKDIR $ROS_WORKSPACE
