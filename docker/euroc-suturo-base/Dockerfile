@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y libpcl-1.7-all ros-hydro-pcl-ros ros-hy
 	rosdep init
 
 # Install extrawurst
-RUN apt-get update && apt-get install -y bash-completion command-not-found tig zsh net-tools nano vim-nox openjdk-7-jdk && \
+RUN apt-get update && apt-get install -y bash-completion command-not-found tig zsh net-tools nano vim-nox openjdk-7-jdk libjsoncpp-dev && \
 	update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/java-1.7.0-openjdk-i386/jre/bin/java" 1 && \
  	update-alternatives --install "/usr/bin/javac" "javac" "/usr/lib/jvm/java-1.7.0-openjdk-i386/bin/javac" 1 && \
  	update-alternatives --set java "/usr/lib/jvm/java-1.7.0-openjdk-i386/jre/bin/java" && \
