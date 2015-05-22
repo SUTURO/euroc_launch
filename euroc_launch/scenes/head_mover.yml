@@ -34,19 +34,19 @@ public_description:
           pose: [0, 0, 0, 0, 0, 0]
           density: 1710 # [kg/m³] ~alloy
         - type: box
-          size: [0.005, 0.055, 0.05]
+          size: [0.005, 0.055, 0.12]
           pose: [0.0275, 0.0025, 0.0225, 0, 0, 0]
           density: 1710 # [kg/m³] ~alloy
         - type: box
-          size: [0.005, 0.055, 0.05]
+          size: [0.005, 0.055, 0.12]
           pose: [-0.0275, -0.0025, 0.0225, 0, 0, 0]
           density: 1710 # [kg/m³] ~alloy
         - type: box
-          size: [0.055, 0.005, 0.05]
+          size: [0.055, 0.005, 0.12]
           pose: [-0.0025, 0.0275, 0.0225, 0, 0, 0]
           density: 1710 # [kg/m³] ~alloy
         - type: box
-          size: [0.055, 0.005, 0.05]
+          size: [0.055, 0.005, 0.12]
           pose: [0.0025, -0.0275, 0.0225, 0, 0, 0]
           density: 1710 # [kg/m³] ~alloy
       surface_material: aluminium
