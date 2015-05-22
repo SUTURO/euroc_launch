@@ -6,6 +6,7 @@ if [ "`dpkg -l | grep euroc | grep scenes | grep $SCENESVERSION`" == "" ]
 	exit
 fi
 echo Installing custom tasks
-sudo cp $SCRIPTS/../scenes/*suturo.yml /opt/euroc_c2s1/scenes/
-sudo cp $SCRIPTS/../scenes/customScenes.yml /opt/euroc_c2s1/scenes/scenes.yml
+sudo cp $SCRIPTS/../scenes/head_mover.yml /opt/euroc_c2s1/scenes/
+# sudo cp $SCRIPTS/../scenes/customScenes.yml /opt/euroc_c2s1/scenes/scenes.yml
+sudo echo "- head_mover.yml" >> /opt/euroc_c2s1/scenes/scenes.yml	
 echo Finished!
