@@ -108,7 +108,6 @@ add_executable(TaskSelector src/TaskSelector.cpp)
 # add_dependencies(euroc_launch_node euroc_launch_generate_messages_cpp)
 add_dependencies(${catkin_EXPORTED_TARGETS} suturo_msgs_generate_messages_cpp)
 
-
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(euroc_launch_node
 #   ${catkin_LIBRARIES}
