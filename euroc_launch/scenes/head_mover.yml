@@ -14,7 +14,7 @@ public_description:
         - type: sphere
           radius: 0.008
           pose: [0, 0, 0, 0, 0, 0]
-          density: 3000 # [kg/m³] ~steel
+          density: 2850 # [kg/m³] ~steel
       surface_material: aluminium
     red_cube:
       color: ff0000
@@ -32,23 +32,23 @@ public_description:
         - type: box
           size: [0.04, 0.04, 0.005]
           pose: [0, 0, 0, 0, 0, 0]
-          density: 1710 # [kg/m³] ~alloy
+          density: 1310 # [kg/m³] ~alloy
         - type: box
-          size: [0.005, 0.045, 0.12]
-          pose: [0.0195, 0.0025, -0.03, 0, 0, 0]
-          density: 1710 # [kg/m³] ~alloy
+          size: [0.004, 0.044, 0.12]
+          pose: [0.022, 0.002, 0.0575, 0, 0, 0]
+          density: 1310 # [kg/m³] ~alloy
         - type: box
-          size: [0.004, 0.045, 0.12]
-          pose: [-0.0195, -0.0025, -0.03, 0, 0, 0]
-          density: 1710 # [kg/m³] ~alloy
+          size: [0.004, 0.044, 0.12]
+          pose: [-0.022, -0.002, 0.0575, 0, 0, 0]
+          density: 1310 # [kg/m³] ~alloy
         - type: box
-          size: [0.045, 0.004, 0.12]
-          pose: [-0.0025, 0.0195, -0.03, 0, 0, 0]
-          density: 1710 # [kg/m³] ~alloy
+          size: [0.044, 0.004, 0.12]
+          pose: [-0.002, 0.022, 0.0575, 0, 0, 0]
+          density: 1310 # [kg/m³] ~alloy
         - type: box
-          size: [0.045, 0.004, 0.12]
-          pose: [0.0025, -0.0195, -0.03, 0, 0, 0]
-          density: 1710 # [kg/m³] ~alloy
+          size: [0.044, 0.004, 0.12]
+          pose: [0.002, -0.022, 0.0575, 0, 0, 0]
+          density: 1310 # [kg/m³] ~alloy
       surface_material: aluminium
   
   target_zones:
@@ -74,9 +74,9 @@ internal_description:
     red_cube:
       start_pose: [-0.3, -0.4, 0.03, 0, 0, 0]
     blue_handle:
-      start_pose: [0, 0.5, 0.095, 0, 0, 0]
+      start_pose: [0, 0.5, 0.02, 0, 0, 0]
     red_sphere:
-      start_pose: [0, 0.5, 0.11, 0, 0, 0]
+      start_pose: [0, 0.5, 0.04, 0, 0, 0]
 
   two_axes_table:
     range: [0, 0]
