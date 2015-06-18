@@ -14,8 +14,8 @@ public_description:
         - type: sphere
           radius: 0.008
           pose: [0, 0, 0, 0, 0, 0]
-          density: 2850 # [kg/m³] ~steel
-      surface_material: aluminium
+          density: 10850 # [kg/m³] ~steel
+      surface_material: aluminium2
     red_cube:
       color: ff0000
       description: a red cube
@@ -32,24 +32,24 @@ public_description:
         - type: box
           size: [0.04, 0.04, 0.005]
           pose: [0, 0, 0, 0, 0, 0]
-          density: 1310 # [kg/m³] ~alloy
+          density: 2010 # [kg/m³] ~alloy
         - type: box
           size: [0.004, 0.044, 0.12]
           pose: [0.022, 0.002, 0.0575, 0, 0, 0]
-          density: 1310 # [kg/m³] ~alloy
+          density: 2010 # [kg/m³] ~alloy
         - type: box
           size: [0.004, 0.044, 0.12]
           pose: [-0.022, -0.002, 0.0575, 0, 0, 0]
-          density: 1310 # [kg/m³] ~alloy
+          density: 2010 # [kg/m³] ~alloy
         - type: box
           size: [0.044, 0.004, 0.12]
           pose: [-0.002, 0.022, 0.0575, 0, 0, 0]
-          density: 1310 # [kg/m³] ~alloy
+          density: 2010 # [kg/m³] ~alloy
         - type: box
           size: [0.044, 0.004, 0.12]
           pose: [0.002, -0.022, 0.0575, 0, 0, 0]
-          density: 1310 # [kg/m³] ~alloy
-      surface_material: aluminium
+          density: 2010 # [kg/m³] ~alloy
+      surface_material: aluminium2
   
   target_zones:
     zone_A:
