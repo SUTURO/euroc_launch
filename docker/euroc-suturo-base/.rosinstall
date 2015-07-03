@@ -9,8 +9,8 @@
 - git: {local-name: src/stacks/knowrob_addons, uri: 'http://team.suturo.de:9419/git/knowrob_addons.git', version: '35b7f4bd24f6'}
 - git: {local-name: src/stacks/knowrob_dev, uri: 'http://team.suturo.de:9419/git/knowrob_dev.git', version: '80e20da41eb8'}
 - git: {local-name: src/stacks/iai_cad_tools, uri: 'http://team.suturo.de:9419/git/iai_cad_tools.git', version: '90f2627936b0'}
-
-- git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git', version: 'f562fbebd6ac'}
+																							
+- git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git', version: '5e5c3c072b31'}
 - git: {local-name: src/designator_integration, uri: 'http://team.suturo.de:9419/git/designator_integration.git', version: '6f6559a81ade'}
 - git: {local-name: src/iai_common_msgs, uri: 'http://team.suturo.de:9419/git/iai_common_msgs.git', version: '9e73210b6b7c'}
 - git: {local-name: src/mongodb_log, uri: 'http://team.suturo.de:9419/git/ros-mongodb_log.git', version: 'bd9ee807862a'}

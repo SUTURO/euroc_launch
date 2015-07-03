@@ -12,12 +12,13 @@ RUN apt-get update && apt-get install -y libpcl-1.7-all ros-hydro-pcl-ros ros-hy
 	rosdep init
 
 # Install extrawurst
-RUN apt-get update && apt-get install -y bash-completion command-not-found tig zsh net-tools nano vim-nox openjdk-7-jdk libjsoncpp-dev && \
+RUN apt-get update && apt-get install -y bash-completion command-not-found tig zsh net-tools nano vim-nox openjdk-7-jdk libjsoncpp-dev aptitude qtcreator && \
 	update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/java-1.7.0-openjdk-i386/jre/bin/java" 1 && \
  	update-alternatives --install "/usr/bin/javac" "javac" "/usr/lib/jvm/java-1.7.0-openjdk-i386/bin/javac" 1 && \
  	update-alternatives --set java "/usr/lib/jvm/java-1.7.0-openjdk-i386/jre/bin/java" && \
  	update-alternatives --set javac "/usr/lib/jvm/java-1.7.0-openjdk-i386/bin/javac" && \
  	wget http://team.suturo.de:9419/files/robomongo-0.8.4-i386.deb && dpkg -i robomongo-0.8.4-i386.deb && rm robomongo-0.8.4-i386.deb && \
+ 	pip install pygazebo requests && \
  	echo "export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386" >> /home/suturo/.bashrc && \
  	echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386:/usr/lib/jvm/java-7-openjdk-i386/jre/lib/i386/server:/usr/lib/swi-prolog/lib/i386" >> /home/suturo/.bashrc && \
 	apt-get clean
