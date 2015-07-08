@@ -1,5 +1,5 @@
+# Base image to set up ROS hydro, the EuRoC simulator + dependencies and a ROS workspace inside a 32 bit ubuntu environment
 FROM ggrandes/ubuntu32:12.04
-
 MAINTAINER Moritz Horstmann <mhorst@tzi.de>
 
 # base tools and graphics drivers
