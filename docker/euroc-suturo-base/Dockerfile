@@ -24,11 +24,15 @@ RUN apt-get update && apt-get install -y bash-completion command-not-found tig z
 	apt-get clean
 
 USER suturo
-WORKDIR /home/suturo/catkin_ws
+WORKDIR /home/suturo/3rdparty_ws
 ADD .rosinstall ./.rosinstall
-RUN sudo chown suturo:suturo .rosinstall && rosdep update && wstool update && mkdir devel && touch devel/setup.bash \
-	&& PS1='> ' source ~/.bashrc && rosdep install -y --ignore-src --from-paths src/stacks/ && sudo apt-get clean -y && \
+RUN sudo chown suturo:suturo . -R && mkdir src && rosdep update && wstool update && source /opt/ros/hydro/setup.bash && \
+	source /opt/euroc_c2s1/ros/install/setup.bash && export ROS_WORKSPACE=/home/suturo/3rdparty_ws && \
+	rosdep install -y --ignore-src --from-paths src/stacks/ && sudo apt-get clean -y && \
 	cd src && touch pr2_common/{pr2_machine,pr2_common,pr2_description,pr2_dashboard_aggregator}/CATKIN_IGNORE pr2_controllers/{pr2_calibration_controllers,pr2_controllers,joint_trajectory_action,pr2_mechanism_controllers,pr2_gripper_action,single_joint_position_action,robot_mechanism_controllers,ethercat_trigger_controllers,pr2_head_action}/CATKIN_IGNORE cram_bridge/cram_fccl/CATKIN_IGNORE && cd .. && \
-	rm devel/setup.bash && catkin_make --pkg=designator_integration_msgs && catkin_make
+	catkin_make --pkg=designator_integration_msgs && catkin_make
+
+WORKDIR /home/suturo/catkin_ws
+RUN source /opt/ros/hydro/setup.bash && cd src && catkin_init_workspace && cd .. && source /home/suturo/3rdparty_ws/devel/setup.bash && catkin_make
 
 ADD persistent.sh /home/suturo/persistent.sh
