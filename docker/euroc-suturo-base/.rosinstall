@@ -9,17 +9,17 @@
 - git: {local-name: src/stacks/knowrob_addons, uri: 'http://team.suturo.de:9419/git/knowrob_addons.git', version: '35b7f4bd24f6'}
 - git: {local-name: src/stacks/knowrob_dev, uri: 'http://team.suturo.de:9419/git/knowrob_dev.git', version: '80e20da41eb8'}
 - git: {local-name: src/stacks/iai_cad_tools, uri: 'http://team.suturo.de:9419/git/iai_cad_tools.git', version: '90f2627936b0'}
-																							
+
 - git: {local-name: src/semrec, uri: 'http://team.suturo.de:9419/git/semrec.git', version: '5e5c3c072b31'}
 - git: {local-name: src/designator_integration, uri: 'http://team.suturo.de:9419/git/designator_integration.git', version: '6f6559a81ade'}
 - git: {local-name: src/iai_common_msgs, uri: 'http://team.suturo.de:9419/git/iai_common_msgs.git', version: '9e73210b6b7c'}
 - git: {local-name: src/mongodb_log, uri: 'http://team.suturo.de:9419/git/ros-mongodb_log.git', version: 'bd9ee807862a'}
- 
+
 - git: {local-name: src/convex_decomposition, uri: 'http://team.suturo.de:9419/git/convex_decomposition.git', version: 'aade11331966'}
 - git: {local-name: src/ivcon, uri: 'http://team.suturo.de:9419/git/ivcon.git', version: 'd02aff32b303'}
 - git: {local-name: src/roslisp_common, uri: 'http://team.suturo.de:9419/git/roslisp_common.git', version: 'a9f8cf36549e'}
- 
+
 - git: {local-name: src/pr2_common, uri: 'http://team.suturo.de:9419/git/pr2_common.git', version: '41cb2515ebf3'}
 - git: {local-name: src/pr2_controllers, uri: 'http://team.suturo.de:9419/git/pr2_controllers.git', version: '02376d1a1899'}
- 
+
 - git: {local-name: src/genlisp, uri: 'http://team.suturo.de:9419/git/genlisp.git', version: 'srv-generation-bug'}

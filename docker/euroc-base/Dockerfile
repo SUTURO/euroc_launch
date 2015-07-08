@@ -9,7 +9,7 @@ RUN apt-get update && \
 
 # ros hydro + euroc deps
 RUN	sh -c '. /etc/lsb-release && \
-	echo "deb http://packages.ros.org.ros.informatik.uni-freiburg.de/ros/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list' && \
+	echo "deb http://packages.ros.org/ros-shadow-fixed/ubuntu precise main" > /etc/apt/sources.list.d/ros-latest.list' && \
 	wget https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -O - | apt-key add - && \
 	apt-get update && \
 	apt-get install -y libgts-0.7-5 ros-hydro-desktop-full ros-hydro-moveit-full libprotobuf7 libtbb2 libtar0 libcegui-mk2-0.7.5 python-wstool && \
