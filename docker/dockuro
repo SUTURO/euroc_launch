@@ -96,7 +96,6 @@ function update() {
 		done
 	fi
 	if $CONTNEEDSUPDATE; then
-		removeCustom
 		return 1
 	fi
 	return 0
@@ -234,6 +233,7 @@ if [ "${OPTS["update"]}" == true ]; then
 	if [ $? == 1 ]; then
 		echo "[Dockuro] Found updated version of base image! Deleting container..."
 		docker rm -f $EUROC_CONTAINER_NAME
+		removeCustom
 	else
 		echo "[Dockuro] No update available."
 	fi
