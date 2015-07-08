@@ -102,6 +102,9 @@ function update() {
 	return 0
 }
 
+# Ripped from http://stackoverflow.com/a/24067243
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | tail -n 1)" == "$1"; }
+
 if [ "${OPTS["init"]}" == true ]; then
 	echo "[Dockuro] We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
 	sudo mkdir -p /etc/docker/certs.d/team.suturo.de:9420
@@ -205,11 +208,10 @@ if [ "${OPTS["launch"]}" == true ]; then
 		docker start $EUROC_CONTAINER_NAME
 	fi
 	VER=$(docker -v | awk '{print $3}')
-	if [  "$VER" = "`echo -e "$VER\n1.7" | sort -V | head -n1`" ]; then
-		docker exec -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
-	else
-		docker exec -u suturo -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
+	if version_gt $VER 1.7; then
+		EXEC_ARGS="-u suturo" # 1.7 or newer
 	fi
+	docker exec $EXEC_ARGS -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
 fi
 
 if [ "${OPTS["stop"]}" == true ]; then
