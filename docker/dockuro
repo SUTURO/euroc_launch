@@ -81,6 +81,7 @@ function migrate() {
 
 function update() {
 	docker pull team.suturo.de:9420/suturo/data
+	docker pull team.suturo.de:9420/suturo/euroc-base
 	docker pull team.suturo.de:9420/suturo/euroc-suturo-base
 	CONTNEEDSUPDATE=false
 	BASE_IMAGE=$(docker inspect -f "{{ .Id }}" team.suturo.de:9420/suturo/euroc-suturo-base)
@@ -95,11 +96,13 @@ function update() {
 		done
 	fi
 	if $CONTNEEDSUPDATE; then
-		removeCustom
 		return 1
 	fi
 	return 0
 }
+
+# Ripped from http://stackoverflow.com/a/24067243
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | tail -n 1)" == "$1"; }
 
 if [ "${OPTS["init"]}" == true ]; then
 	echo "[Dockuro] We need root to copy the team.suturo.de certificate to /etc/docker/certs.d/team.suturo.de:9420/ca.crt..."
@@ -191,13 +194,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 			-e DISPLAY=$DISPLAY \
 			-e TERM=xterm \
 			-v /tmp/.X11-unix/X0:/tmp/.X11-unix/X0 \
-			-v $EUROC_BASE/euroc_launch:/home/suturo/catkin_ws/src/euroc_launch \
-			-v $EUROC_BASE/euroc_manipulation:/home/suturo/catkin_ws/src/euroc_manipulation \
-			-v $EUROC_BASE/euroc_perception:/home/suturo/catkin_ws/src/euroc_perception \
-			-v $EUROC_BASE/euroc_msgs:/home/suturo/catkin_ws/src/euroc_msgs \
-			-v $EUROC_BASE/euroc_planning:/home/suturo/catkin_ws/src/euroc_planning \
-			-v $EUROC_BASE/euroc_ml:/home/suturo/catkin_ws/src/euroc_ml \
-			-v $EUROC_BASE/euroc_video:/home/suturo/catkin_ws/src/euroc_video \
+			-v $EUROC_BASE:/home/suturo/catkin_ws/src/euroc \
 			-v $EUROC_BASE/sr_experimental_data:/home/suturo/sr_experimental_data \
 			$BASHRC_MOUNT \
 			$EUROC_DOCKER_RUN_OPTS \
@@ -209,7 +206,11 @@ if [ "${OPTS["launch"]}" == true ]; then
 		echo "[Dockuro] Suturo container exists, starting it..."
 		docker start $EUROC_CONTAINER_NAME
 	fi
-	docker exec -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
+	VER=$(docker -v | awk '{print $3}')
+	if version_gt $VER 1.7; then
+		EXEC_ARGS="-u suturo" # 1.7 or newer
+	fi
+	docker exec $EXEC_ARGS -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
 fi
 
 if [ "${OPTS["stop"]}" == true ]; then
@@ -232,6 +233,7 @@ if [ "${OPTS["update"]}" == true ]; then
 	if [ $? == 1 ]; then
 		echo "[Dockuro] Found updated version of base image! Deleting container..."
 		docker rm -f $EUROC_CONTAINER_NAME
+		removeCustom
 	else
 		echo "[Dockuro] No update available."
 	fi
