@@ -163,6 +163,7 @@ if [ "${OPTS["launch"]}" == true ]; then
 		EUROC_BASE=~/euroc
 	fi
 
+	# zsh specific stuff
 	if [ "$EUROC_SHELL" == "zsh" ]; then 
 		echo "zsh" > /home/$USER/.docker_zsh
 		if grep "/home/$USER/.docker_zsh" /home/$USER/.zshrc; then
@@ -181,23 +182,26 @@ if [ "${OPTS["launch"]}" == true ]; then
 	if [ -n "$EUROC_CUSTOM_BASHRC" ]; then
 		BASHRC_MOUNT="-v $EUROC_CUSTOM_BASHRC:/home/suturo/.custombashrc"
 	fi
-
+	# Create suturo_data container if not existing
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" ${EUROC_CONTAINER_NAME}_data 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
 		echo "[Dockuro] No suturo data container existing, creating a new one..."
 		docker run --name ${EUROC_CONTAINER_NAME}_data team.suturo.de:9420/suturo/data true
 	fi
+	# Create and run suturo_mongo container if not existing
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" ${EUROC_CONTAINER_NAME}_mongo 2>/dev/null)
 	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
 		echo "[Dockuro] No suturo mongo container existing, creating a new one..."
 		docker run -d --name ${EUROC_CONTAINER_NAME}_mongo --volumes-from ${EUROC_CONTAINER_NAME}_data mongo
 	fi
+	# Run suturo_mongo container if not running
 	if [ "$EXISTING" == 'false' ]; then
     	echo "[Dockuro] suturo mongo container exists, starting it..."
     	docker start ${EUROC_CONTAINER_NAME}_mongo
   	fi
+  	# Create and run suturo container if not existing
 	EXISTING=$(docker inspect --format="{{ .State.Running }}" $EUROC_CONTAINER_NAME 2>/dev/null)
-	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then # container does not exist
+	if [ $? -eq 1 ] || [ "$EXISTING" == '<no value>' ]; then
 		echo "[Dockuro] No suturo container existing, creating a new one..."
 		docker run --name $EUROC_CONTAINER_NAME -d \
 			-e DISPLAY=$DISPLAY \
@@ -208,18 +212,21 @@ if [ "${OPTS["launch"]}" == true ]; then
 			$BASHRC_MOUNT \
 			$EUROC_DOCKER_RUN_OPTS \
 			--volumes-from ${EUROC_CONTAINER_NAME}_data \
-			--link ${EUROC_CONTAINER_NAME}_mongo \
+			--link ${EUROC_CONTAINER_NAME}_mongo:mongo \
 			--privileged $EUROC_IMAGE \
 			bash -c 'while [ 1 -eq 1 ]; do sleep 1337; done'
 	fi
+	# Run suturo container if not running
 	if [ "$EXISTING" == 'false' ]; then # container exists, but stopped
 		echo "[Dockuro] Suturo container exists, starting it..."
 		docker start $EUROC_CONTAINER_NAME
 	fi
+	# Hack to make docker >= 1.7 work.
 	VER=$(docker -v | awk '{print $3}')
 	if version_gt $VER 1.7; then
 		EXEC_ARGS="-u suturo" # 1.7 or newer
 	fi
+	# Execute new shell inside suturo container and attach to it
 	docker exec $EXEC_ARGS -t -i $EUROC_CONTAINER_NAME $EUROC_SHELL
 fi
 
