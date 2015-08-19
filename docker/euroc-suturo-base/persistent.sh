@@ -31,7 +31,6 @@ function persist() {
 		$PREFIX ln -s /persistent/$1 $1
 	fi
 }
-persist /data/db true true
 persist /home/suturo/.rviz true
 persist /home/suturo/.cache true
 persist /home/suturo/.java true
