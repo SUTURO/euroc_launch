@@ -1,0 +1,58 @@
+internal_description:
+  surface_materials:
+    # http://www.roymech.co.uk/Useful_Tables/Tribology/co_of_frict.htm#coef
+    default:
+      bounce: { restitution_coefficient: 0 }
+      friction: { friction: 0.6, rolling_friction: 0.001 }
+      contact: { soft_cfm: 0, soft_erp: 0.2, kp: 1e+12, kd: 1 }
+    concrete:
+      with:
+        aluminium: { friction: 0.45 }
+        wood: { friction: 0.45 }
+    aluminium:
+      with:
+        aluminium: { friction: 1.05 }
+    wood:
+      with:
+        wood: { friction: 0.5 }
+        #aluminium: { friction: 0.6, rolling_friction: 0.0001 }
+        # task1 standing green cylinder needs atleast 0.0004 to come to rest
+        aluminium: { friction: 0.6, rolling_friction: 0.0006 }
+    leather:
+      with:
+        aluminium: { friction: 0.3, rolling_friction: 0.0 }
+        #aluminium: { friction: 0.6 }
+        wood: { friction: 0.4, rolling_friction: 0.0 }
+
+    gripper_finger:
+      with:
+        aluminium: { friction: 1, rolling_friction: 0 }
+        wood: { friction: 1, rolling_friction: 0 }
+    gripper_finger_rubber:
+      with:
+        aluminium: { friction: 2, rolling_friction: 1 }
+        wood: { friction: 2, rolling_friction: 1 }
+    lwr_surface:
+      with:
+        concrete: { friction: 0.45 }
+        aluminium: { friction: 1 }
+    aluminium2:
+      with:
+        aluminium: { friction: 1.05, rolling_friction: 0.012 }
+        aluminium2: { friction: 1.05, rolling_friction: 0.012 }
+        concrete: { friction: 0.45, rolling_friction: 0.012 }
+        gripper_finger: { friction: 1, rolling_friction: 0.012 }
+        gripper_finger_rubber: { friction: 2, rolling_friction: 1 }
+        leather: { friction: 0.3, rolling_friction: 0.012 }
+        lwr_surface: { friction: 1, rolling_friction: 0.012 }
+        wood: { friction: 0.6, rolling_friction: 0.012 }
+    aluminium2:
+      with:
+        aluminium: { friction: 1.05, rolling_friction: 0.012 }
+        aluminium2: { friction: 1.05, rolling_friction: 0.005 }
+        concrete: { friction: 0.45, rolling_friction: 0.012 }
+        gripper_finger: { friction: 1, rolling_friction: 0.012 }
+        gripper_finger_rubber: { friction: 2, rolling_friction: 1 }
+        leather: { friction: 0.3, rolling_friction: 0.012 }
+        lwr_surface: { friction: 1, rolling_friction: 0.012 }
+        wood: { friction: 0.6, rolling_friction: 0.012 }
