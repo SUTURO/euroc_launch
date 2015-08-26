@@ -3,5 +3,9 @@ SCRIPTS=$(dirname "$0")
 echo Installing custom tasks
 sudo cp $SCRIPTS/../scenes/head_mover.yml /opt/euroc_c2s1/scenes/
 sudo cp $SCRIPTS/../scenes/scenes.yml /opt/euroc_c2s1/scenes/scenes.yml
-# sudo echo "- head_mover.yml" >> /opt/euroc_c2s1/scenes/scenes.yml	
+# sudo echo "- head_mover.yml" >> /opt/euroc_c2s1/scenes/scenes.yml
+
+echo Installing custom surface materials
+sudo cp $SCRIPTS/../scenes/common_surface_materials.yml /opt/euroc_c2s1/scenes/common_surface_materials.yml
+
 echo Finished!

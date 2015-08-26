@@ -5,7 +5,7 @@ public_description:
   task_name: task 1
   description: there are 3 objects lying on the table (red_cube, green_cylinder, blue_handle).
     their projected origin needs to be placed in their respective target zones (zone_A, zone_B, zone_C) on the table.
-  
+
   objects:
     red_sphere:
       color: ff0000
@@ -50,7 +50,7 @@ public_description:
           pose: [0.002, -0.022, 0.0575, 0, 0, 0]
           density: 2010 # [kg/m³] ~alloy
       surface_material: aluminium2
-  
+
   target_zones:
     zone_A:
       expected_object: red_cube
