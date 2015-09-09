@@ -46,13 +46,3 @@ internal_description:
         leather: { friction: 0.3, rolling_friction: 0.012 }
         lwr_surface: { friction: 1, rolling_friction: 0.012 }
         wood: { friction: 0.6, rolling_friction: 0.012 }
-    aluminium2:
-      with:
-        aluminium: { friction: 1.05, rolling_friction: 0.012 }
-        aluminium2: { friction: 1.05, rolling_friction: 0.005 }
-        concrete: { friction: 0.45, rolling_friction: 0.012 }
-        gripper_finger: { friction: 1, rolling_friction: 0.012 }
-        gripper_finger_rubber: { friction: 2, rolling_friction: 1 }
-        leather: { friction: 0.3, rolling_friction: 0.012 }
-        lwr_surface: { friction: 1, rolling_friction: 0.012 }
-        wood: { friction: 0.6, rolling_friction: 0.012 }
