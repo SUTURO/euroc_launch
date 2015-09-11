@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find robocop)/launch/robocop.launch" />
+
+  <node name="voldemort2vader" pkg="voldemort" type="voldemort_to_vader.py" />
+  <node name="mongodb_playa" pkg="mongodb_play" type="mongodb_play" args="$(env MONGO_PORT_27017_TCP_ADDR)" />
+  <node name="insta_tf" pkg="mongodb_play" type="instant_tf" args="$(env MONGO_PORT_27017_TCP_ADDR)" />
+  <node name="rviz" pkg="rviz" type="rviz"/>
+</launch>
