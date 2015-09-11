@@ -1,4 +1,6 @@
 <launch>
+  <param name="robot_description" command="cat /opt/euroc_c2s1/ros/install/share/euroc_c2_description/urdf/kuka_lwr.urdf" />
+
   <include file="$(find robocop)/launch/robocop.launch" />
 
   <node name="voldemort2vader" pkg="voldemort" type="voldemort_to_vader.py" />
