@@ -1,0 +1,3 @@
+<launch>
+  <param name="robot_description" command="cat /opt/euroc_c2s1/ros/install/share/euroc_c2_description/urdf/kuka_lwr.urdf" />
+</launch>
